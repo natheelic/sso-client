@@ -10,10 +10,10 @@
  * A mount guard renders a neutral placeholder on the server / first client
  * render so the icon never causes a hydration mismatch.
  */
-import { useEffect, useState } from "react";
-import { MoonIcon, SunIcon } from "@/components/icons";
+import { useEffect, useState, type CSSProperties } from "react";
+import { Icon } from "@/components/survey/icon";
 
-export function ThemeToggle({ className = "" }: { className?: string }) {
+export function ThemeToggle({ style }: { style?: CSSProperties }) {
   const [mounted, setMounted] = useState(false);
   const [dark, setDark] = useState(false);
 
@@ -37,15 +37,16 @@ export function ThemeToggle({ className = "" }: { className?: string }) {
     <button
       type="button"
       onClick={toggle}
-      aria-label={mounted ? `Switch to ${dark ? "light" : "dark"} theme` : "Toggle theme"}
-      title="Toggle theme"
-      className={`inline-flex h-10 w-10 items-center justify-center rounded-lg border border-border bg-card text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background ${className}`}
+      aria-label={mounted ? (dark ? "สลับเป็นธีมสว่าง" : "สลับเป็นธีมมืด") : "สลับธีม"}
+      title="สลับธีม"
+      style={{
+        display: "inline-flex", alignItems: "center", justifyContent: "center",
+        width: 36, height: 36, borderRadius: 8, border: "1px solid var(--border)",
+        background: "var(--card)", color: "var(--muted-foreground)", cursor: "pointer",
+        flexShrink: 0, ...style,
+      }}
     >
-      {mounted ? (
-        dark ? <SunIcon className="h-5 w-5" /> : <MoonIcon className="h-5 w-5" />
-      ) : (
-        <span className="h-5 w-5" />
-      )}
+      {mounted ? <Icon name={dark ? "sun" : "moon"} size={18} /> : <span style={{ width: 18, height: 18 }} />}
     </button>
   );
 }

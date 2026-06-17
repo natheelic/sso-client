@@ -17,8 +17,9 @@ import type { NextRequest } from "next/server";
 
 const APP_SLUG = process.env.SSO_CLIENT_ID!;
 
-/** Paths that bypass the auth check entirely */
-const PUBLIC_PREFIXES = ["/api/auth", "/login", "/403"];
+/** Paths that bypass the SSO auth check entirely.
+ *  /admin has its own login (separate from SSO), so the SSO guard skips it. */
+const PUBLIC_PREFIXES = ["/api/auth", "/login", "/403", "/admin"];
 
 export default auth((req: NextRequest & { auth: unknown }) => {
   const { pathname } = req.nextUrl;

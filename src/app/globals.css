@@ -1,4 +1,7 @@
 @import "tailwindcss";
+/* Webfonts (Noto Sans/Serif Thai, Sarabun, Google Sans Text, JetBrains Mono)
+   are loaded via <link> in layout.tsx — a CSS @import here would be reordered
+   after Tailwind's inlined rules and break @import ordering. */
 
 /* Class-based dark mode for Tailwind v4 */
 @custom-variant dark (&:where(.dark, .dark *));
@@ -18,12 +21,44 @@
   --muted-foreground: #737373;
   --accent: #f5f5f5;
   --accent-foreground: #0a0a0a;
-  --destructive: #e00;
+  --destructive: #e00000;
   --destructive-foreground: #fafafa;
   --border: #e5e5e5;
   --input: #e5e5e5;
   --ring: #0a0a0a;
   --radius: 0.375rem;
+
+  /* Semantic status (themed below for dark) */
+  --success-bg: #dcfce7;
+  --success-fg: #15803d;
+  --warning-bg: #fef3c7;
+  --warning-fg: #a16207;
+  --danger-bg: #fee2e2;
+  --danger-fg: #b91c1c;
+
+  /* Translucent sticky-header background (theme-aware) */
+  --header-bg: rgba(250, 250, 250, 0.85);
+
+  /* Shadows */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+
+  /* Certificate-only ornamental palette (document surface — constant across themes) */
+  --cert-navy: #1d2b4f;
+  --cert-navy-soft: #2c3e6b;
+  --cert-gold: #b08a3e;
+  --cert-gold-soft: #d9c08a;
+  --cert-gold-bright: #cba14e;
+  --cert-ink: #1a1a1a;
+  --cert-ivory: #fbf8f1;
+  --cert-emerald: #1f5d4c;
+
+  /* Type */
+  --font-sans: 'Noto Sans Thai', 'Google Sans Text', 'Google Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-serif-th: 'Noto Serif Thai', serif;
+  --font-doc: 'Sarabun', 'Noto Sans Thai', sans-serif;
+  --font-mono: ui-monospace, 'JetBrains Mono', SFMono-Regular, Menlo, Consolas, monospace;
 }
 
 .dark {
@@ -46,6 +81,15 @@
   --border: #262626;
   --input: #262626;
   --ring: #fafafa;
+
+  --success-bg: rgba(34, 197, 94, 0.15);
+  --success-fg: #4ade80;
+  --warning-bg: rgba(234, 179, 8, 0.15);
+  --warning-fg: #facc15;
+  --danger-bg: rgba(239, 68, 68, 0.15);
+  --danger-fg: #f87171;
+
+  --header-bg: rgba(10, 10, 10, 0.8);
 }
 
 @theme inline {
@@ -68,56 +112,57 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
-  --font-sans: 'Google Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-mono);
   --radius-sm: calc(var(--radius) - 2px);
   --radius-md: var(--radius);
   --radius-lg: calc(var(--radius) + 2px);
   --radius-xl: calc(var(--radius) + 6px);
 }
 
+* { box-sizing: border-box; }
+
 html {
   font-size: 16px;
   scroll-behavior: smooth;
-  /* Offset in-page anchor jumps so the sticky navbar doesn't cover content. */
-  scroll-padding-top: 5rem;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: 'Google Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  /* Contain the off-canvas mobile drawer without creating a scroll container
-     (so position: sticky on the navbar/sidebar keeps working). */
+  font-weight: 400;
+  /* Contain off-canvas drawers without creating a scroll container. */
   overflow-x: clip;
 }
 
+/* Thai text reads better with a touch more line-height */
+body, p, li, td, th, input, button, textarea, select { line-height: 1.65; }
+h1, h2, h3, h4 { line-height: 1.35; }
+
+::selection { background: rgba(29, 43, 79, 0.14); }
+
 /* Thin, theme-aware scrollbars */
-* {
-  scrollbar-width: thin;
-  scrollbar-color: var(--border) transparent;
-}
-*::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-*::-webkit-scrollbar-thumb {
-  background-color: var(--border);
-  border-radius: 9999px;
-}
-*::-webkit-scrollbar-track {
-  background: transparent;
-}
+* { scrollbar-width: thin; scrollbar-color: var(--border) transparent; }
+*::-webkit-scrollbar { width: 10px; height: 10px; }
+*::-webkit-scrollbar-thumb { background-color: var(--border); border-radius: 999px; border: 3px solid var(--background); }
+*::-webkit-scrollbar-track { background: transparent; }
+
+/* Animations */
+@keyframes appFade { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+.fade-in { animation: appFade 0.35s ease both; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Hide secondary chrome on phones */
+@media (max-width: 640px) { .hide-sm { display: none !important; } }
 
 /* Respect users who prefer reduced motion */
 @media (prefers-reduced-motion: reduce) {
-  html {
-    scroll-behavior: auto;
-  }
-  *,
-  *::before,
-  *::after {
+  html { scroll-behavior: auto; }
+  .fade-in { animation: none; }
+  *, *::before, *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;

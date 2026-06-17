@@ -1,10 +1,11 @@
 import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
 import "./globals.css";
+import { ToastProvider } from "@/components/survey/toast";
 
 export const metadata: Metadata = {
-  title: "Web A — SSO Client",
-  description: "Client application A — protected by the central SSO server",
+  title: "ระบบแบบสอบถาม & เกียรติบัตร — วิทยาลัยการอาชีพลอง",
+  description: "ระบบตอบแบบสอบถามและออกเกียรติบัตรอิเล็กทรอนิกส์ ป้องกันด้วย SSO กลางของวิทยาลัย",
 };
 
 export const viewport: Viewport = {
@@ -19,12 +20,12 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="th" suppressHydrationWarning>
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link
-          href="https://fonts.googleapis.com/css2?family=Google+Sans:ital,opsz,wght@0,17..18,400..700;1,17..18,400..700&display=swap"
+          href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;500;600;700;800&family=Noto+Serif+Thai:wght@400;500;600;700&family=Sarabun:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Google+Sans+Text:ital,wght@0,400;0,500;0,700;1,400&family=JetBrains+Mono:wght@400;500&display=swap"
           rel="stylesheet"
         />
         {/* Prevent flash of wrong theme */}
@@ -34,8 +35,8 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           }}
         />
       </head>
-      <body className="antialiased min-h-screen flex flex-col bg-background text-foreground">
-        {children}
+      <body className="antialiased min-h-screen bg-background text-foreground">
+        <ToastProvider>{children}</ToastProvider>
       </body>
     </html>
   );

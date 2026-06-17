@@ -1,56 +1,46 @@
 /**
- * 403 Forbidden — {APP_NAME}
- *
- * Shown when the authenticated user's token does not include this app's
- * SSO_CLIENT_ID in the apps[] claim, meaning the SSO admin has not granted
- * them access.
+ * 403 Forbidden — shown when the authenticated SSO user's token does not
+ * include this app's SSO_CLIENT_ID in the apps[] claim.
  */
 import { auth, signOut } from "@/lib/auth";
+import { COLLEGE } from "@/lib/survey-data";
+import { Icon } from "@/components/survey/icon";
+import { Button } from "@/components/survey/ui";
 import { ThemeToggle } from "@/components/theme-toggle";
-
-const APP_NAME = process.env.APP_NAME ?? "Web A";
-const SSO_URL = process.env.SSO_URL ?? "http://localhost:3000";
 
 export default async function ForbiddenPage() {
   const session = await auth();
   const user = session?.user as { email?: string | null; name?: string | null } | undefined;
 
   return (
-    <main className="relative flex min-h-screen flex-col items-center justify-center gap-6 px-4 py-10 text-center">
-      <div className="absolute right-4 top-4">
+    <main style={{ position: "relative", minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 24, padding: "40px 20px", textAlign: "center", background: "var(--background)" }}>
+      <div style={{ position: "absolute", top: 16, right: 16 }}>
         <ThemeToggle />
       </div>
 
-      {/* Icon */}
-      <div className="grid h-20 w-20 place-items-center rounded-full border-2 border-destructive/30 bg-destructive/10 text-4xl select-none">
-        🚫
+      <div style={{ width: 80, height: 80, borderRadius: "50%", background: "var(--danger-bg)", border: "2px solid var(--danger-fg)", display: "grid", placeItems: "center", color: "var(--danger-fg)" }}>
+        <Icon name="shield" size={36} />
       </div>
 
-      {/* Message */}
-      <div className="max-w-sm space-y-2">
-        <div className="text-5xl font-extrabold leading-none text-foreground sm:text-6xl">403</div>
-        <div className="text-xl font-semibold text-foreground">Access Forbidden</div>
+      <div style={{ maxWidth: 420 }}>
+        <div style={{ fontSize: 48, fontWeight: 800, lineHeight: 1, color: "var(--foreground)" }}>403</div>
+        <div style={{ fontSize: 20, fontWeight: 700, marginTop: 8 }}>ไม่มีสิทธิ์เข้าใช้งาน</div>
         {user?.email ? (
-          <p className="mt-2 text-sm text-muted-foreground">
-            <span className="font-semibold text-foreground">{user.email}</span> does not have
-            permission to access <strong>{APP_NAME}</strong>. Contact your administrator.
+          <p style={{ fontSize: 14, color: "var(--muted-foreground)", marginTop: 10, lineHeight: 1.7 }}>
+            บัญชี <strong style={{ color: "var(--foreground)" }}>{user.email}</strong> ยังไม่ได้รับสิทธิ์เข้าใช้งาน
+            <strong> ระบบแบบสอบถามและเกียรติบัตร</strong> ของ{COLLEGE.name} กรุณาติดต่อผู้ดูแลระบบ
           </p>
         ) : (
-          <p className="mt-2 text-sm text-muted-foreground">
-            You do not have permission to access this application.
+          <p style={{ fontSize: 14, color: "var(--muted-foreground)", marginTop: 10, lineHeight: 1.7 }}>
+            ท่านยังไม่ได้รับสิทธิ์เข้าใช้งานระบบนี้ กรุณาติดต่อผู้ดูแลระบบ
           </p>
         )}
       </div>
 
-      {/* Actions */}
-      <div className="flex w-full max-w-sm flex-col justify-center gap-3 sm:w-auto sm:flex-row">
-        <a
-          href="/"
-          className="flex min-h-11 items-center justify-center rounded-lg border border-border px-4 text-sm font-medium text-foreground no-underline transition-colors hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-        >
-          Go Home
+      <div style={{ display: "flex", gap: 12, flexWrap: "wrap", justifyContent: "center" }}>
+        <a href="/" style={{ textDecoration: "none" }}>
+          <Button variant="outline"><Icon name="arrow-left" size={15} />กลับหน้าหลัก</Button>
         </a>
-
         {user && (
           <form
             action={async () => {
@@ -58,22 +48,10 @@ export default async function ForbiddenPage() {
               await signOut({ redirectTo: "/login" });
             }}
           >
-            <button
-              type="submit"
-              className="flex min-h-11 w-full items-center justify-center rounded-lg border border-destructive/20 bg-destructive/10 px-4 text-sm font-medium text-destructive transition-colors hover:bg-destructive/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-            >
-              Sign out
-            </button>
+            <Button type="submit" variant="destructive"><Icon name="log-out" size={15} />ออกจากระบบ</Button>
           </form>
         )}
       </div>
-
-      <a
-        href={SSO_URL}
-        className="text-xs text-muted-foreground no-underline transition-colors hover:text-foreground"
-      >
-        ← Back to SSO Server
-      </a>
     </main>
   );
 }
