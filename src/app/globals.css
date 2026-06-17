@@ -77,6 +77,9 @@
 
 html {
   font-size: 16px;
+  scroll-behavior: smooth;
+  /* Offset in-page anchor jumps so the sticky navbar doesn't cover content. */
+  scroll-padding-top: 5rem;
 }
 
 body {
@@ -85,4 +88,38 @@ body {
   font-family: 'Google Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  /* Contain the off-canvas mobile drawer without creating a scroll container
+     (so position: sticky on the navbar/sidebar keeps working). */
+  overflow-x: clip;
+}
+
+/* Thin, theme-aware scrollbars */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+*::-webkit-scrollbar-thumb {
+  background-color: var(--border);
+  border-radius: 9999px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* Respect users who prefer reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
