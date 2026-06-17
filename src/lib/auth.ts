@@ -7,7 +7,7 @@
  *
  * Required env vars (.env.local):
  *   SSO_URL            — e.g. http://localhost:3000
- *   SSO_CLIENT_ID      — "web-a"
+ *   SSO_CLIENT_ID      — app slug for this client
  *   SSO_CLIENT_SECRET  — from `pnpm prisma db seed`
  *   AUTH_SECRET        — random secret unique to this app
  *   NEXTAUTH_URL       — http://localhost:3001
@@ -19,7 +19,7 @@ const SSO_URL   = process.env.SSO_URL!;
 const CLIENT_ID = process.env.SSO_CLIENT_ID!;
 
 /**
- * Unique cookie names for web-a.
+ * Unique cookie names for this client app.
  *
  * All client apps and the SSO server share the `localhost` domain in dev,
  * so they all receive each other's cookies. Without unique names every app
@@ -28,7 +28,7 @@ const CLIENT_ID = process.env.SSO_CLIENT_ID!;
  *
  * Giving each app its own prefix keeps the cookies isolated.
  */
-const COOKIE_PREFIX = "web-a";
+const COOKIE_PREFIX = process.env.SSO_CLIENT_ID!;
 const secure        = process.env.NODE_ENV === "production";
 
 export const authConfig: NextAuthConfig = {
@@ -81,6 +81,9 @@ export const authConfig: NextAuthConfig = {
 
       clientId:     CLIENT_ID,
       clientSecret: process.env.SSO_CLIENT_SECRET!,
+      client: {
+        token_endpoint_auth_method: "client_secret_post",
+      },
 
       // Map the userinfo response into a next-auth User object
       profile(profile: Record<string, unknown>) {

@@ -1,5 +1,5 @@
 /**
- * Dashboard — Web A
+ * Dashboard — {APP_NAME}
  *
  * Server component: reads session from the local NextAuth cookie
  * (populated via the SSO OAuth2 flow) and displays user info + RBAC claims.
@@ -8,15 +8,8 @@ import { auth, signOut } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import Image from "next/image";
 
-const APP_NAME = "Web A";
-const APP_SLUG = "web-a";
-
-// Map all known app slugs to friendly display names
-const APP_LABELS: Record<string, string> = {
-  "web-a": "Web A",
-  "web-b": "Web B",
-  "web-c": "Web C",
-};
+const APP_NAME = process.env.APP_NAME!;
+const APP_SLUG = process.env.SSO_CLIENT_ID!;
 
 export default async function DashboardPage() {
   const session = await auth();
@@ -105,7 +98,7 @@ export default async function DashboardPage() {
                   key={slug}
                   className="px-2.5 py-1 rounded-md bg-secondary border border-border text-xs text-secondary-foreground font-medium"
                 >
-                  {APP_LABELS[slug] ?? slug}
+                  {slug === APP_SLUG ? APP_NAME : slug}
                 </span>
               ))}
             </div>

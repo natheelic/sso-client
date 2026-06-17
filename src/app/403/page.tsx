@@ -1,7 +1,7 @@
 /**
  * 403 Forbidden — Web A
  *
- * Shown when the authenticated user's token does not include "web-a"
+ * Shown when the authenticated user's token does not include this app's SSO_CLIENT_ID
  * in the apps[] claim, meaning the SSO admin has not granted them access.
  */
 import { auth, signOut } from "@/lib/auth";

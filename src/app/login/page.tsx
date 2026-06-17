@@ -4,7 +4,7 @@
  * Clicking "Continue with SSO" triggers the OAuth2 Authorization Code flow:
  *   1. NextAuth redirects to SSO server /api/oauth/authorize
  *   2. User authenticates (or is already logged in) on the SSO server
- *   3. SSO checks UserAppPermission for web-a
+ *   3. SSO checks UserAppPermission for this app's SSO_CLIENT_ID
  *   4. SSO issues a code and redirects back to /api/auth/callback/sso
  *   5. NextAuth exchanges code for token, creates local session
  */

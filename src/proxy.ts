@@ -8,14 +8,14 @@
  *  1. Redirect unauthenticated requests to /login
  *  2. Redirect authenticated users who lack permission for this app to /403
  *
- * SSO_CLIENT_ID env var ("web-a") identifies this app inside the `apps[]`
+ * SSO_CLIENT_ID env var identifies this app inside the `apps[]`
  * claim that the SSO server embeds in every token.
  */
 import { auth } from "@/lib/auth";
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-const APP_SLUG = process.env.SSO_CLIENT_ID!; // "web-a"
+const APP_SLUG = process.env.SSO_CLIENT_ID!;
 
 /** Paths that bypass the auth check entirely */
 const PUBLIC_PREFIXES = ["/api/auth", "/login", "/403"];
