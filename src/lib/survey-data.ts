@@ -4,9 +4,8 @@
  *
  * Ported from the Claude Design handoff (survey/project/app/data.jsx).
  * ACTIVITIES is now only the seed source for the DB (see prisma/seed.ts) —
- * the live app reads activities from Postgres via src/lib/activities-db.ts.
- * RESPONDENTS is still mock/generated; real submissions are a later
- * roadmap phase.
+ * the live app reads activities, submissions, and certificates from
+ * Postgres via src/lib/activities-db.ts and src/lib/submissions-db.ts.
  */
 
 export type TemplateId = "classic" | "formal" | "modern" | "emerald";
@@ -49,9 +48,6 @@ export interface CertTemplate {
 
 export interface Respondent {
   id: string;
-  prefix: string;
-  first: string;
-  last: string;
   name: string;
   activityId: string;
   certNo: string;
@@ -159,46 +155,11 @@ export function thaiLongDate(iso: string): string {
   return `${d} ${THAI_MONTH_FULL[m - 1]} พ.ศ. ${y}`;
 }
 
-// ---- Thai given/sur names for mock respondents ----
-const PREFIXES = ["นาย", "นางสาว", "นาง"];
-const FIRST = ["ธนกร", "ศิริพร", "ณัฐวุฒิ", "กมลชนก", "พงศกร", "ปวีณา", "อนุชา", "สุดารัตน์", "วีรภัทร", "จิราพร", "ภาคิน", "อรอุมา", "ชัยวัฒน์", "นภัสสร", "ธีรเดช", "พิมพ์ชนก", "กิตติศักดิ์", "วรรณวิสา", "เอกรัตน์", "ศศิธร"];
-const LAST = ["วงศ์ตา", "ใจงาม", "แสนสุข", "คำมูล", "อินต๊ะ", "ธรรมชาติ", "บุญมา", "ศรีวิชัย", "ปัญญา", "มะลิวัลย์", "เขียวคำ", "ทองดี", "สมบูรณ์", "ดวงแก้ว", "กันทะวงค์", "นันตา", "จันทร์ตา", "ไชยวงศ์", "ตาคำ", "พรมมินทร์"];
-
-const pad = (n: number, len: number) => String(n).padStart(len, "0");
-
-function makeRespondents(): Respondent[] {
-  const out: Respondent[] = [];
-  const serial: Record<string, number> = { "act-ev": 0, "act-digital": 0, "act-openhouse": 0, "act-safety": 0 };
-  const counts: Record<string, number> = { "act-ev": 38, "act-digital": 41, "act-openhouse": 263, "act-safety": 0 };
-  let gid = 1;
-  ACTIVITIES.forEach((act) => {
-    const yearShort = act.issueDate.slice(2, 4);
-    const n = counts[act.id];
-    for (let i = 0; i < n; i++) {
-      serial[act.id]++;
-      const prefix = PREFIXES[gid % PREFIXES.length];
-      const first = FIRST[(gid * 7) % FIRST.length];
-      const last = LAST[(gid * 13) % LAST.length];
-      const day = pad(((i * 3) % 28) + 1, 2);
-      const month = act.issueDate.slice(5, 7);
-      const ratingAvg = 3.4 + (gid % 16) / 10;
-      out.push({
-        id: "r" + gid,
-        prefix, first, last,
-        name: prefix + first + "  " + last,
-        activityId: act.id,
-        certNo: `LICEC ${yearShort}-${act.code.slice(-3)}/${pad(serial[act.id], 4)}`,
-        dateISO: `25${yearShort}-${month}-${day}`,
-        dateLabel: `${parseInt(day, 10)} ${THAI_MONTH[parseInt(month, 10) - 1]} 25${yearShort}`,
-        avg: Math.min(5, ratingAvg).toFixed(2),
-      });
-      gid++;
-    }
-  });
-  return out.reverse(); // newest first
+/** Short form for tables/lists, e.g. "14 พ.ค. 2568". */
+export function thaiShortDate(iso: string): string {
+  const [y, m, d] = iso.split("-").map(Number);
+  return `${d} ${THAI_MONTH[m - 1]} ${y}`;
 }
-
-export const RESPONDENTS: Respondent[] = makeRespondents();
 
 /**
  * Branded short domain printed on certificates. In production this must be

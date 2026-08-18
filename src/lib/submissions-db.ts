@@ -11,6 +11,7 @@
 import { Prisma } from "@/generated/prisma/client";
 import { db } from "@/lib/db";
 import { auth } from "@/lib/auth";
+import { thaiShortDate, type Respondent } from "@/lib/survey-data";
 
 export interface CertRecord {
   name: string;
@@ -21,7 +22,7 @@ export interface CertRecord {
   signatureVariant: number;
 }
 
-type AnswerMap = Record<string, number | string | string[] | undefined>;
+export type AnswerMap = Record<string, number | string | string[] | undefined>;
 
 function pad(n: number, len: number) {
   return String(n).padStart(len, "0");
@@ -163,4 +164,42 @@ export async function getCertificateByCertNo(certNo: string): Promise<PublicCert
       certTemplate: row.activity.certTemplate,
     },
   };
+}
+
+/** Average of a submission's rating-type answers (the only numeric-valued answers). */
+function ratingAverage(answers: unknown): number {
+  const values = Object.values((answers as Record<string, unknown>) ?? {}).filter((v): v is number => typeof v === "number");
+  return values.length ? values.reduce((a, b) => a + b, 0) / values.length : 0;
+}
+
+/**
+ * Every certificate holder across all activities, for the admin respondents
+ * screen — newest first. Joins each certificate to its matching submission
+ * (same activityId + userId) to compute a satisfaction average.
+ */
+export async function getRespondents(): Promise<Respondent[]> {
+  const [certs, submissions] = await Promise.all([
+    db.certificateRecord.findMany({ orderBy: { issuedAt: "desc" } }),
+    db.submission.findMany({ select: { activityId: true, userId: true, answers: true } }),
+  ]);
+  const subByKey = new Map(submissions.map((s) => [`${s.activityId}:${s.userId}`, s]));
+
+  return certs.map((c) => {
+    const sub = subByKey.get(`${c.activityId}:${c.userId}`);
+    return {
+      id: c.id,
+      name: c.recipientName,
+      activityId: c.activityId,
+      certNo: c.certNo,
+      dateISO: c.issueDate,
+      dateLabel: thaiShortDate(c.issueDate),
+      avg: ratingAverage(sub?.answers).toFixed(2),
+    };
+  });
+}
+
+/** Raw answers for every submission of one activity, for the admin results screen. */
+export async function getSubmissionAnswers(activityId: string): Promise<AnswerMap[]> {
+  const rows = await db.submission.findMany({ where: { activityId }, select: { answers: true } });
+  return rows.map((r) => r.answers as AnswerMap);
 }

@@ -1,15 +1,15 @@
 "use client";
 
 /**
- * AdminDataProvider — shared activity state for the admin console, seeded
- * from the DB by the server layout. Mutations write through to the DB via
- * the server actions in activities-db.ts, then update local state
- * optimistically so admin navigation doesn't need a full refetch.
- * Respondent counts are still derived from the static mock respondent list
- * (real submissions land in a later roadmap phase).
+ * AdminDataProvider — shared activity + respondent state for the admin
+ * console, seeded from the DB by the server layout. Activity mutations
+ * write through to the DB via the server actions in activities-db.ts, then
+ * update local state optimistically so admin navigation doesn't need a full
+ * refetch. Respondents are read-only from the admin console, so they're
+ * just the snapshot fetched when the admin session started.
  */
 import { createContext, useContext, useMemo, useState, type ReactNode } from "react";
-import { RESPONDENTS, type Activity, type TemplateId } from "@/lib/survey-data";
+import type { Activity, Respondent, TemplateId } from "@/lib/survey-data";
 import * as activitiesDb from "@/lib/activities-db";
 
 /** The signed-in SSO survey creator (passed down from the server layout). */
@@ -22,6 +22,7 @@ export interface AdminUser {
 interface AdminDataValue {
   adminUser: AdminUser;
   activities: Activity[];
+  respondents: Respondent[];
   counts: Record<string, number>;
   /** create a blank draft activity, returns its id */
   createActivity: () => Promise<string>;
@@ -32,15 +33,15 @@ interface AdminDataValue {
 const AdminDataContext = createContext<AdminDataValue | null>(null);
 
 export function AdminDataProvider({
-  adminUser, initialActivities, children,
-}: { adminUser: AdminUser; initialActivities: Activity[]; children: ReactNode }) {
+  adminUser, initialActivities, respondents, children,
+}: { adminUser: AdminUser; initialActivities: Activity[]; respondents: Respondent[]; children: ReactNode }) {
   const [activities, setActivities] = useState<Activity[]>(initialActivities);
 
   const counts = useMemo(() => {
     const c: Record<string, number> = {};
-    RESPONDENTS.forEach((r) => { c[r.activityId] = (c[r.activityId] || 0) + 1; });
+    respondents.forEach((r) => { c[r.activityId] = (c[r.activityId] || 0) + 1; });
     return c;
-  }, []);
+  }, [respondents]);
 
   const createActivity = async () => {
     const created = await activitiesDb.createActivity();
@@ -59,7 +60,7 @@ export function AdminDataProvider({
   };
 
   return (
-    <AdminDataContext.Provider value={{ adminUser, activities, counts, createActivity, saveActivity, assignTemplate }}>
+    <AdminDataContext.Provider value={{ adminUser, activities, respondents, counts, createActivity, saveActivity, assignTemplate }}>
       {children}
     </AdminDataContext.Provider>
   );

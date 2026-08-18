@@ -8,11 +8,12 @@
 import type { ReactNode } from "react";
 import { requireAdminSession } from "@/lib/auth";
 import { getActivities } from "@/lib/activities-db";
+import { getRespondents } from "@/lib/submissions-db";
 import { AdminDataProvider } from "@/components/survey/admin/admin-data";
 import { AdminShell } from "@/components/survey/admin/admin-shell";
 
 export default async function AdminLayout({ children }: { children: ReactNode }) {
-  const [session, activities] = await Promise.all([requireAdminSession(), getActivities()]);
+  const [session, activities, respondents] = await Promise.all([requireAdminSession(), getActivities(), getRespondents()]);
 
   const u = session.user;
   const adminUser = {
@@ -22,7 +23,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
   };
 
   return (
-    <AdminDataProvider adminUser={adminUser} initialActivities={activities}>
+    <AdminDataProvider adminUser={adminUser} initialActivities={activities} respondents={respondents}>
       <AdminShell>{children}</AdminShell>
     </AdminDataProvider>
   );

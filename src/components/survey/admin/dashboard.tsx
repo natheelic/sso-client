@@ -2,15 +2,14 @@
 
 /** AdminDashboard — overview metrics + charts + recent (ported from AdminDashboard.jsx). */
 import { useRouter } from "next/navigation";
-import { RESPONDENTS } from "@/lib/survey-data";
+import { getInitial } from "@/lib/format";
 import { Button, Card, PageHeader, Stat } from "@/components/survey/ui";
 import { Icon } from "@/components/survey/icon";
 import { useAdminData } from "@/components/survey/admin/admin-data";
 
 export function DashboardScreen() {
   const router = useRouter();
-  const { activities, counts } = useAdminData();
-  const respondents = RESPONDENTS;
+  const { activities, respondents, counts } = useAdminData();
 
   const totalCerts = respondents.length;
   const openCount = activities.filter((a) => a.status === "เปิดรับ").length;
@@ -23,6 +22,9 @@ export function DashboardScreen() {
   respondents.forEach((r) => { const b = Math.min(4, Math.max(0, Math.round(parseFloat(r.avg)) - 1)); buckets[b]++; });
   const maxB = Math.max(1, ...buckets);
 
+  const targetTotal = activities.reduce((s, a) => s + a.target, 0);
+  const responseRate = targetTotal > 0 ? Math.round((totalCerts / targetTotal) * 100) : 0;
+
   const recent = respondents.slice(0, 6);
 
   return (
@@ -33,7 +35,7 @@ export function DashboardScreen() {
         <Stat label="เกียรติบัตรที่ออกแล้ว" value={totalCerts.toLocaleString()} sub="ฉบับ" icon="award" />
         <Stat label="กิจกรรมทั้งหมด" value={activities.length} sub={`เปิดรับ ${openCount}`} icon="clipboard-list" accent="var(--success-fg)" />
         <Stat label="ความพึงพอใจเฉลี่ย" value={avgSat} sub="จาก 5.00" icon="smile" accent="var(--success-fg)" />
-        <Stat label="อัตราการตอบกลับ" value="86%" sub="ของเป้าหมาย" icon="trending-up" />
+        <Stat label="อัตราการตอบกลับ" value={`${responseRate}%`} sub="ของเป้าหมาย" icon="trending-up" />
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "1.4fr 1fr", gap: 16, marginBottom: 16 }} className="dash-grid">
@@ -87,7 +89,7 @@ export function DashboardScreen() {
             const act = activities.find((a) => a.id === r.activityId);
             return (
               <div key={r.id} style={{ display: "flex", alignItems: "center", gap: 14, padding: "13px 22px", borderBottom: i < recent.length - 1 ? "1px solid var(--border)" : "none" }}>
-                <div style={{ width: 34, height: 34, borderRadius: "50%", background: "var(--secondary)", display: "grid", placeItems: "center", fontSize: 13, fontWeight: 600, flexShrink: 0 }}>{r.first[0]}</div>
+                <div style={{ width: 34, height: 34, borderRadius: "50%", background: "var(--secondary)", display: "grid", placeItems: "center", fontSize: 13, fontWeight: 600, flexShrink: 0 }}>{getInitial(r.name)}</div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 14, fontWeight: 600 }}>{r.name}</div>
                   <div style={{ fontSize: 12.5, color: "var(--muted-foreground)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{act?.title}</div>

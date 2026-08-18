@@ -1,8 +1,9 @@
 "use client";
 
 /** AdminResults — per-activity, per-question result summary (ported from AdminResults.jsx). */
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { RATING_LABELS, type Question } from "@/lib/survey-data";
+import { getSubmissionAnswers, type AnswerMap } from "@/lib/submissions-db";
 import { Badge, Button, Card, Empty, PageHeader, Select } from "@/components/survey/ui";
 import { Icon } from "@/components/survey/icon";
 import { useAdminData } from "@/components/survey/admin/admin-data";
@@ -16,12 +17,13 @@ export function ResultsScreen() {
   const activity = activities.find((a) => a.id === sel);
   const n = counts[sel] || 0;
 
-  const seedFor = (qid: string) => {
-    let h = 0;
-    const s = sel + qid;
-    for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
-    return h;
-  };
+  const [answers, setAnswers] = useState<AnswerMap[]>([]);
+  useEffect(() => {
+    if (!sel) return;
+    let cancelled = false;
+    getSubmissionAnswers(sel).then((rows) => { if (!cancelled) setAnswers(rows); });
+    return () => { cancelled = true; };
+  }, [sel]);
 
   return (
     <div style={{ padding: "28px clamp(20px,4vw,36px)" }} className="fade-in">
@@ -43,7 +45,7 @@ export function ResultsScreen() {
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           {activity.questions.map((q, qi) => (
-            <ResultBlock key={q.id} q={q} index={qi} n={n} seed={seedFor(q.id)} />
+            <ResultBlock key={q.id} q={q} index={qi} answers={answers} />
           ))}
         </div>
       )}
@@ -51,17 +53,15 @@ export function ResultsScreen() {
   );
 }
 
-function ResultBlock({ q, index, n, seed }: { q: Question; index: number; n: number; seed: number }) {
-  const rnd = (i: number) => { const x = Math.sin(seed * 9301 + i * 49297) * 233280; return x - Math.floor(x); };
-
+function ResultBlock({ q, index, answers }: { q: Question; index: number; answers: AnswerMap[] }) {
   let body;
   if (q.type === "rating") {
-    const weights = [0.04, 0.07, 0.18, 0.34, 0.37].map((w, i) => w * (0.8 + rnd(i) * 0.4));
-    const sum = weights.reduce((a, b) => a + b, 0);
-    const dist = weights.map((w) => w / sum);
-    const cnt = dist.map((d) => Math.round(d * n));
-    const avg = dist.reduce((a, d, i) => a + d * (i + 1), 0).toFixed(2);
-    const maxD = Math.max(...dist);
+    const cnt = [0, 0, 0, 0, 0];
+    answers.forEach((a) => { const v = a[q.id]; if (typeof v === "number" && v >= 1 && v <= 5) cnt[v - 1]++; });
+    const answered = cnt.reduce((a, b) => a + b, 0);
+    const dist = cnt.map((c) => (answered ? c / answered : 0));
+    const avg = (answered ? dist.reduce((a, d, i) => a + d * (i + 1), 0) : 0).toFixed(2);
+    const maxD = Math.max(0.0001, ...dist);
     body = (
       <div>
         <div style={{ display: "flex", alignItems: "baseline", gap: 10, marginBottom: 16 }}>
@@ -86,10 +86,10 @@ function ResultBlock({ q, index, n, seed }: { q: Question; index: number; n: num
     );
   } else {
     const opts = q.options ?? [];
-    const weights = opts.map((_, i) => 0.3 + rnd(i) * 0.7);
-    const sum = weights.reduce((a, b) => a + b, 0);
-    const dist = weights.map((w) => w / sum);
-    const cnt = dist.map((d) => Math.round(d * n * (q.type === "checkbox" ? 1.6 : 1)));
+    const cnt = opts.map((opt) => answers.filter((a) => {
+      const v = a[q.id];
+      return q.type === "checkbox" ? Array.isArray(v) && v.includes(opt) : v === opt;
+    }).length);
     const maxC = Math.max(1, ...cnt);
     body = (
       <div style={{ display: "flex", flexDirection: "column", gap: 11 }}>

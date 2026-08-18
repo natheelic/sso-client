@@ -2,8 +2,9 @@
 
 /** AdminRespondents — searchable/filterable certificate holders + preview modal (ported from AdminRespondents.jsx). */
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
-import { COLLEGE, RESPONDENTS, thaiLongDate, verifyUrlFor, type Activity, type Respondent } from "@/lib/survey-data";
+import { COLLEGE, thaiLongDate, verifyUrlFor, type Activity, type Respondent } from "@/lib/survey-data";
 import { getSignatureVariant } from "@/lib/survey-progress";
+import { getInitial } from "@/lib/format";
 import { Badge, Button, Card, Empty, Input, Modal, PageHeader, Select } from "@/components/survey/ui";
 import { Icon } from "@/components/survey/icon";
 import { CertificateFrame, type CertData } from "@/components/survey/certificate";
@@ -15,8 +16,7 @@ const td: CSSProperties = { padding: "11px 16px", verticalAlign: "middle" };
 const PER = 12;
 
 export function RespondentsScreen() {
-  const { activities } = useAdminData();
-  const respondents = RESPONDENTS;
+  const { activities, respondents } = useAdminData();
   const toast = useToast();
   const [q, setQ] = useState("");
   const [act, setAct] = useState("all");
@@ -98,7 +98,7 @@ export function RespondentsScreen() {
                     <tr key={r.id} style={{ borderTop: "1px solid var(--border)" }} className="resp-row">
                       <td style={td}>
                         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                          <div style={{ width: 30, height: 30, borderRadius: "50%", background: "var(--secondary)", display: "grid", placeItems: "center", fontSize: 12, fontWeight: 600, flexShrink: 0 }}>{r.first[0]}</div>
+                          <div style={{ width: 30, height: 30, borderRadius: "50%", background: "var(--secondary)", display: "grid", placeItems: "center", fontSize: 12, fontWeight: 600, flexShrink: 0 }}>{getInitial(r.name)}</div>
                           <span style={{ fontWeight: 600 }}>{r.name}</span>
                         </div>
                       </td>
