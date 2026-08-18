@@ -1,8 +1,9 @@
-import { auth, loginRedirectUrl } from "@/lib/auth";
-import { notFound, redirect } from "next/navigation";
+import { auth } from "@/lib/auth";
+import { notFound } from "next/navigation";
 import { ACTIVITIES } from "@/lib/survey-data";
 import { ActivityIntro } from "@/components/survey/participant/activity-intro";
 
+/** Browsing an activity is public; login is only required to start its survey. */
 export default async function ActivityIntroPage({
   params,
   searchParams,
@@ -12,17 +13,11 @@ export default async function ActivityIntroPage({
 }) {
   const [{ id }, { qr }, session] = await Promise.all([params, searchParams, auth()]);
 
-  if (!session?.user) redirect(loginRedirectUrl(`/activities/${id}${qr ? `?qr=${qr}` : ""}`));
-
   const activity = ACTIVITIES.find((a) => a.id === id);
   if (!activity) notFound();
 
-  const u = session.user;
-  return (
-    <ActivityIntro
-      activity={activity}
-      user={{ name: u.name ?? "", email: u.email ?? null, image: u.image ?? null }}
-      fromQR={qr === "1"}
-    />
-  );
+  const u = session?.user;
+  const user = u ? { name: u.name ?? "", email: u.email ?? null, image: u.image ?? null } : null;
+
+  return <ActivityIntro activity={activity} user={user} fromQR={qr === "1"} />;
 }

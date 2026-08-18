@@ -13,7 +13,7 @@ import { Badge, Button, Card } from "@/components/survey/ui";
 import { Icon } from "@/components/survey/icon";
 import { UserHeader, type ParticipantUser } from "@/components/survey/participant/participant-header";
 
-export function ActivityIntro({ activity, user, fromQR }: { activity: Activity; user: ParticipantUser; fromQR?: boolean }) {
+export function ActivityIntro({ activity, user, fromQR }: { activity: Activity; user: ParticipantUser | null; fromQR?: boolean }) {
   const router = useRouter();
   const [done, setDone] = useState(false);
   useEffect(() => { setDone(!!getRecord(activity.id)); }, [activity.id]);

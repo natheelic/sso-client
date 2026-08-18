@@ -2,9 +2,11 @@
  * proxy.ts — Next.js 16 route guard.
  *
  * Access model:
- *  - Every survey issues a certificate tied to a verified identity, so taking
- *    one requires SSO login — but any authenticated user is enough, no app
- *    permission needed.
+ *  - Activities are browsable without logging in (the home list and an
+ *    activity's intro page), so the site is discoverable / shareable.
+ *  - Taking a survey issues a certificate tied to a verified identity, so
+ *    /activities/:id/survey requires SSO login — any authenticated user is
+ *    enough, no app permission needed.
  *  - The survey-creator console at /admin additionally requires the user to
  *    be authorized for this app (its SSO_CLIENT_ID must appear in the
  *    token's apps[] claim).
@@ -19,14 +21,19 @@ import type { NextRequest } from "next/server";
 
 const APP_SLUG = process.env.SSO_CLIENT_ID!;
 
-const PUBLIC_PREFIXES = ["/login", "/403"];
+function isPublicPath(pathname: string): boolean {
+  if (pathname === "/") return true;
+  if (pathname === "/login" || pathname.startsWith("/login/")) return true;
+  if (pathname === "/403" || pathname.startsWith("/403/")) return true;
+  // Activity intro pages (browsing), but not the survey itself.
+  if (/^\/activities\/[^/]+$/.test(pathname)) return true;
+  return false;
+}
 
 export default auth((req: NextRequest & { auth: unknown }) => {
   const { pathname } = req.nextUrl;
 
-  if (PUBLIC_PREFIXES.some((p) => pathname === p || pathname.startsWith(`${p}/`))) {
-    return NextResponse.next();
-  }
+  if (isPublicPath(pathname)) return NextResponse.next();
 
   const session = req.auth as { user?: { apps?: string[] } } | null;
 

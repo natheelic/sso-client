@@ -20,7 +20,7 @@ function iconForType(type: string) {
   return "sparkles";
 }
 
-export function ActivityList({ user }: { user: ParticipantUser }) {
+export function ActivityList({ user }: { user: ParticipantUser | null }) {
   const router = useRouter();
   const [completed, setCompleted] = useState<Record<string, boolean>>({});
 
@@ -32,14 +32,14 @@ export function ActivityList({ user }: { user: ParticipantUser }) {
   }, []);
 
   const open = ACTIVITIES.filter((a) => a.status === "เปิดรับ");
-  const firstName = (user.name || user.email || "ผู้เข้าร่วม").split("@")[0].split(" ")[0];
+  const firstName = user ? (user.name || user.email || "ผู้เข้าร่วม").split("@")[0].split(" ")[0] : null;
 
   return (
     <div style={{ minHeight: "100vh" }}>
       <UserHeader user={user} />
       <main style={{ maxWidth: 880, margin: "0 auto", padding: "clamp(24px,5vw,48px) clamp(16px,5vw,24px) 80px" }} className="fade-in">
         <div style={{ marginBottom: 28 }}>
-          <div style={{ fontSize: 13.5, color: "var(--muted-foreground)" }}>สวัสดี {firstName}</div>
+          <div style={{ fontSize: 13.5, color: "var(--muted-foreground)" }}>{firstName ? `สวัสดี ${firstName}` : "ยินดีต้อนรับ"}</div>
           <h1 style={{ fontFamily: "var(--font-serif-th)", fontSize: "clamp(26px,4vw,34px)", fontWeight: 700, margin: "4px 0 8px" }}>กิจกรรมที่เปิดรับแบบสอบถาม</h1>
           <p style={{ fontSize: 15, color: "var(--muted-foreground)", margin: 0, maxWidth: 560 }}>
             เลือกกิจกรรมที่ท่านเข้าร่วม ทำแบบสอบถามให้ครบถ้วน แล้วรับเกียรติบัตรอิเล็กทรอนิกส์พร้อมชื่อของท่านได้ทันที

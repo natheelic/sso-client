@@ -8,7 +8,7 @@
  */
 import {
   Award, ClipboardList, Smile, TrendingUp, ArrowRight, ArrowLeft,
-  ChevronRight, ChevronLeft, ChevronUp, ChevronDown, Check, X, LogOut,
+  ChevronRight, ChevronLeft, ChevronUp, ChevronDown, Check, X, LogOut, LogIn,
   LoaderCircle, QrCode, Calendar, Clock, MapPin, HelpCircle, Info, Download,
   Image as ImageIcon, Share2, ShieldCheck, PartyPopper, Wrench, GraduationCap,
   Presentation, Sparkles, User, Shield, LayoutDashboard, Users, BarChart3,
@@ -24,7 +24,7 @@ const MAP: Record<string, LucideIcon> = {
   award: Award, "clipboard-list": ClipboardList, smile: Smile, "trending-up": TrendingUp,
   "arrow-right": ArrowRight, "arrow-left": ArrowLeft, "chevron-right": ChevronRight,
   "chevron-left": ChevronLeft, "chevron-up": ChevronUp, "chevron-down": ChevronDown,
-  check: Check, x: X, "log-out": LogOut, "loader-circle": LoaderCircle, "qr-code": QrCode,
+  check: Check, x: X, "log-out": LogOut, "log-in": LogIn, "loader-circle": LoaderCircle, "qr-code": QrCode,
   calendar: Calendar, clock: Clock, "map-pin": MapPin, "help-circle": HelpCircle, info: Info,
   download: Download, image: ImageIcon, "share-2": Share2, "shield-check": ShieldCheck,
   "party-popper": PartyPopper, wrench: Wrench, "graduation-cap": GraduationCap,
