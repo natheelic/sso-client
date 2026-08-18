@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { getCertificateByCertNo } from "@/lib/submissions-db";
+import { getCollegeSettings } from "@/lib/college-db";
 import { VerifyCertificate } from "@/components/survey/verify-certificate";
 import { Card, Empty } from "@/components/survey/ui";
 import { LogoLockup } from "@/components/survey/emblem";
@@ -9,7 +10,7 @@ import { ThemeToggle } from "@/components/theme-toggle";
 export default async function VerifyPage({ params }: { params: Promise<{ certNo: string }> }) {
   const { certNo: rawCertNo } = await params;
   const certNo = decodeURIComponent(rawCertNo);
-  const cert = await getCertificateByCertNo(certNo);
+  const [cert, college] = await Promise.all([getCertificateByCertNo(certNo), getCollegeSettings()]);
 
   return (
     <div style={{ minHeight: "100vh" }}>
@@ -29,7 +30,7 @@ export default async function VerifyPage({ params }: { params: Promise<{ certNo:
 
       <main style={{ maxWidth: 900, margin: "0 auto", padding: "clamp(24px,4vw,40px) clamp(16px,5vw,24px) 90px" }}>
         {cert ? (
-          <VerifyCertificate cert={cert} />
+          <VerifyCertificate cert={cert} college={college} />
         ) : (
           <Card>
             <Empty

@@ -1,9 +1,8 @@
 "use client";
 
 /** AdminTemplates — certificate background/template manager + signature & logo upload (ported from AdminTemplates.jsx). */
-import { useEffect, useRef, useState } from "react";
-import { CERT_TEMPLATES, COLLEGE, thaiLongDate, type TemplateId } from "@/lib/survey-data";
-import { getSignatureVariant, setSignatureVariant } from "@/lib/survey-progress";
+import { useEffect, useRef, useState, type ChangeEvent } from "react";
+import { CERT_TEMPLATES, thaiLongDate, type TemplateId } from "@/lib/survey-data";
 import { Button, Card, Field, PageHeader, Select } from "@/components/survey/ui";
 import { Icon } from "@/components/survey/icon";
 import { Emblem } from "@/components/survey/emblem";
@@ -23,15 +22,30 @@ function PreviewFit({ data }: { data: CertData }) {
   return <div ref={ref} style={{ width: "100%" }}><CertificateFrame width={w} data={data} /></div>;
 }
 
+/** Reads a chosen PNG as a data: URI, rejecting anything too large for a DB text column to hold sensibly. */
+function readImageFile(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    if (file.size > 1_500_000) { reject(new Error("ไฟล์ใหญ่เกินไป (จำกัด 1.5MB)")); return; }
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = () => reject(reader.error ?? new Error("อ่านไฟล์ไม่สำเร็จ"));
+    reader.readAsDataURL(file);
+  });
+}
+
 export function TemplatesScreen() {
-  const { activities, assignTemplate } = useAdminData();
+  const { activities, college, assignTemplate, saveSignature, saveLogo } = useAdminData();
   const toast = useToast();
   const [selActivity, setSelActivity] = useState(activities[0]?.id ?? "");
   const activity = activities.find((a) => a.id === selActivity) ?? activities[0];
   const [tmpl, setTmpl] = useState<TemplateId>(activity?.certTemplate ?? "classic");
-  const [sigVariant, setSigVariant] = useState(0);
+  const [sigVariant, setSigVariant] = useState(college.signatureVariant);
+  const [signatureImage, setSignatureImage] = useState(college.signatureImage);
+  const [logoImage, setLogoImage] = useState(college.logoImage);
+  const [saving, setSaving] = useState(false);
+  const sigFileRef = useRef<HTMLInputElement>(null);
+  const logoFileRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => { setSigVariant(getSignatureVariant()); }, []);
   useEffect(() => {
     const a = activities.find((x) => x.id === selActivity);
     if (a) setTmpl(a.certTemplate);
@@ -43,14 +57,46 @@ export function TemplatesScreen() {
     template: tmpl, recipientName: "นางสาวสุชาดา  มากมี", activityTitle: activity.title || "กิจกรรมตัวอย่าง",
     activityType: activity.type, hours: activity.hours, dateLabel: activity.dateLabel || "—",
     issueDateLong: thaiLongDate(activity.issueDate), certNo: "LICEC " + activity.code.slice(-3) + "/0001",
-    college: COLLEGE, signatureVariant: sigVariant, signatureName: COLLEGE.director, signatureTitle: COLLEGE.directorTitle,
-    verifyUrl: "verify.licec.ac.th/c/sample",
+    college, signatureVariant: sigVariant, signatureImage, signatureName: college.director,
+    signatureTitle: college.directorTitle, logoImage, verifyUrl: "verify.licec.ac.th/verify/sample",
+  };
+
+  const onPickSignature = async (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    try {
+      setSignatureImage(await readImageFile(file));
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "อัปโหลดลายเซ็นไม่สำเร็จ");
+    }
+  };
+
+  const onPickLogo = async (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    try {
+      setLogoImage(await readImageFile(file));
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "อัปโหลดโลโก้ไม่สำเร็จ");
+    }
   };
 
   const apply = async () => {
-    await assignTemplate(selActivity, tmpl);
-    setSignatureVariant(sigVariant);
-    toast("บันทึกเทมเพลตเกียรติบัตรแล้ว");
+    setSaving(true);
+    try {
+      await Promise.all([
+        assignTemplate(selActivity, tmpl),
+        saveSignature(signatureImage, sigVariant),
+        saveLogo(logoImage),
+      ]);
+      toast("บันทึกเทมเพลตเกียรติบัตรแล้ว");
+    } catch {
+      toast("บันทึกไม่สำเร็จ กรุณาลองใหม่อีกครั้ง");
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -104,35 +150,47 @@ export function TemplatesScreen() {
             <div style={{ fontSize: 13, fontWeight: 600 }}>ลายเซ็นผู้อำนวยการ</div>
             <div style={{ padding: "14px 16px", border: "1px dashed var(--border)", borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, background: "var(--card)" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                <SignatureMark color="var(--cert-navy)" width={96} variant={sigVariant} />
+                {signatureImage
+                  ? <img src={signatureImage} alt="" style={{ width: 96, height: 32, objectFit: "contain" }} />
+                  : <SignatureMark color="var(--cert-navy)" width={96} variant={sigVariant} />}
                 <div style={{ fontSize: 12, color: "var(--muted-foreground)", lineHeight: 1.4 }}>
-                  <div style={{ fontWeight: 600, color: "var(--foreground)" }}>{COLLEGE.director}</div>
-                  ลายเซ็นปัจจุบัน
+                  <div style={{ fontWeight: 600, color: "var(--foreground)" }}>{college.director}</div>
+                  {signatureImage ? "ลายเซ็นที่อัปโหลด" : "ลายเซ็นปัจจุบัน (ตัวอย่าง)"}
                 </div>
               </div>
             </div>
+            {!signatureImage && (
+              <div style={{ display: "flex", gap: 8 }}>
+                {[0, 1].map((v) => (
+                  <button key={v} onClick={() => setSigVariant(v)} style={{
+                    flex: 1, padding: 8, borderRadius: 8, cursor: "pointer", background: sigVariant === v ? "var(--secondary)" : "var(--card)",
+                    border: `1.5px solid ${sigVariant === v ? "var(--primary)" : "var(--border)"}`, display: "grid", placeItems: "center",
+                  }}>
+                    <SignatureMark color="var(--cert-navy)" width={80} variant={v} />
+                  </button>
+                ))}
+              </div>
+            )}
+            <input ref={sigFileRef} type="file" accept="image/png" onChange={onPickSignature} style={{ display: "none" }} />
             <div style={{ display: "flex", gap: 8 }}>
-              {[0, 1].map((v) => (
-                <button key={v} onClick={() => setSigVariant(v)} style={{
-                  flex: 1, padding: 8, borderRadius: 8, cursor: "pointer", background: sigVariant === v ? "var(--secondary)" : "var(--card)",
-                  border: `1.5px solid ${sigVariant === v ? "var(--primary)" : "var(--border)"}`, display: "grid", placeItems: "center",
-                }}>
-                  <SignatureMark color="var(--cert-navy)" width={80} variant={v} />
-                </button>
-              ))}
+              <Button variant="outline" size="sm" onClick={() => sigFileRef.current?.click()} style={{ flex: 1 }}><Icon name="upload" size={14} />อัปโหลดลายเซ็น (PNG)</Button>
+              {signatureImage && <Button variant="ghost" size="sm" onClick={() => setSignatureImage(null)}><Icon name="x" size={14} />ใช้ตัวอย่าง</Button>}
             </div>
-            <Button variant="outline" size="sm" onClick={() => toast("เลือกไฟล์ลายเซ็น (PNG พื้นโปร่ง)", "upload")}><Icon name="upload" size={14} />อัปโหลดลายเซ็น (PNG)</Button>
             <div style={{ height: 1, background: "var(--border)" }} />
             <div style={{ fontSize: 13, fontWeight: 600 }}>ตราวิทยาลัย / โลโก้</div>
             <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-              <div style={{ width: 44, height: 44, borderRadius: 10, border: "1px solid var(--border)", display: "grid", placeItems: "center", background: "var(--card)" }}>
-                <Emblem size={30} />
+              <div style={{ width: 44, height: 44, borderRadius: 10, border: "1px solid var(--border)", display: "grid", placeItems: "center", background: "var(--card)", overflow: "hidden" }}>
+                {logoImage ? <img src={logoImage} alt="" style={{ width: "100%", height: "100%", objectFit: "contain" }} /> : <Emblem size={30} />}
               </div>
-              <Button variant="outline" size="sm" onClick={() => toast("เลือกไฟล์โลโก้", "upload")} style={{ flex: 1 }}><Icon name="upload" size={14} />อัปโหลดโลโก้</Button>
+              <input ref={logoFileRef} type="file" accept="image/png" onChange={onPickLogo} style={{ display: "none" }} />
+              <Button variant="outline" size="sm" onClick={() => logoFileRef.current?.click()} style={{ flex: 1 }}><Icon name="upload" size={14} />อัปโหลดโลโก้</Button>
+              {logoImage && <Button variant="ghost" size="sm" onClick={() => setLogoImage(null)}><Icon name="x" size={14} /></Button>}
             </div>
           </Card>
 
-          <Button size="lg" onClick={apply}><Icon name="check" size={16} />บันทึกเทมเพลตให้กิจกรรมนี้</Button>
+          <Button size="lg" onClick={apply} disabled={saving} style={saving ? { opacity: 0.6, cursor: "not-allowed" } : {}}>
+            <Icon name="check" size={16} />{saving ? "กำลังบันทึก…" : "บันทึกเทมเพลตให้กิจกรรมนี้"}
+          </Button>
         </div>
       </div>
 

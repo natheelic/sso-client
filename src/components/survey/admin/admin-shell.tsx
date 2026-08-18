@@ -133,6 +133,10 @@ export function AdminShell({ children }: { children: ReactNode }) {
           .admin-burger{ display: inline-flex !important; }
         }
         @media (min-width: 901px){ .admin-backdrop{ display: none !important; } }
+        @media print{
+          .admin-aside, .admin-header, .admin-backdrop{ display: none !important; }
+          .admin-main{ margin-left: 0 !important; padding-top: 0 !important; }
+        }
       `}</style>
     </div>
   );

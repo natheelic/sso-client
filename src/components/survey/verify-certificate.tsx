@@ -2,13 +2,14 @@
 
 /** VerifyCertificate — public certificate verification result (found case). */
 import { useEffect, useRef, useState } from "react";
-import { COLLEGE, thaiLongDate, verifyUrlFor, type TemplateId } from "@/lib/survey-data";
+import { thaiLongDate, verifyUrlFor, type TemplateId } from "@/lib/survey-data";
 import type { PublicCertificate } from "@/lib/submissions-db";
+import type { CollegeInfo } from "@/lib/college-db";
 import { Badge, Card } from "@/components/survey/ui";
 import { Icon } from "@/components/survey/icon";
 import { CertificateFrame, type CertData } from "@/components/survey/certificate";
 
-export function VerifyCertificate({ cert }: { cert: PublicCertificate }) {
+export function VerifyCertificate({ cert, college }: { cert: PublicCertificate; college: CollegeInfo }) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const [w, setW] = useState(880);
 
@@ -28,10 +29,12 @@ export function VerifyCertificate({ cert }: { cert: PublicCertificate }) {
     dateLabel: cert.activity.dateLabel,
     issueDateLong: thaiLongDate(cert.issueDate),
     certNo: cert.certNo,
-    college: COLLEGE,
-    signatureVariant: cert.signatureVariant,
-    signatureName: COLLEGE.director,
-    signatureTitle: COLLEGE.directorTitle,
+    college,
+    signatureVariant: college.signatureVariant,
+    signatureImage: college.signatureImage,
+    signatureName: college.director,
+    signatureTitle: college.directorTitle,
+    logoImage: college.logoImage,
     verifyUrl: verifyUrlFor(cert.certNo),
   };
 
@@ -60,7 +63,7 @@ export function VerifyCertificate({ cert }: { cert: PublicCertificate }) {
           <span style={{ color: "var(--muted-foreground)" }}>ระยะเวลา</span>
           <span style={{ fontWeight: 600 }}>{cert.activity.hours} ชั่วโมง</span>
           <span style={{ color: "var(--muted-foreground)" }}>สถาบันผู้ออก</span>
-          <span style={{ fontWeight: 600 }}>{COLLEGE.name}</span>
+          <span style={{ fontWeight: 600 }}>{college.name}</span>
         </div>
       </Card>
     </div>

@@ -27,6 +27,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <link
           href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;500;600;700;800&family=Noto+Serif+Thai:wght@400;500;600;700&family=Sarabun:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Google+Sans+Text:ital,wght@0,400;0,500;0,700;1,400&family=JetBrains+Mono:wght@400;500&display=swap"
           rel="stylesheet"
+          crossOrigin="anonymous"
         />
         {/* Prevent flash of wrong theme */}
         <script

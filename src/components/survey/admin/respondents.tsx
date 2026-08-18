@@ -2,12 +2,14 @@
 
 /** AdminRespondents — searchable/filterable certificate holders + preview modal (ported from AdminRespondents.jsx). */
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
-import { COLLEGE, thaiLongDate, verifyUrlFor, type Activity, type Respondent } from "@/lib/survey-data";
-import { getSignatureVariant } from "@/lib/survey-progress";
+import { thaiLongDate, verifyUrlFor, type Activity, type Respondent } from "@/lib/survey-data";
 import { getInitial } from "@/lib/format";
+import { downloadCsv } from "@/lib/csv";
+import { useCertificateExport } from "@/lib/cert-export";
+import { resendCertificateEmail } from "@/lib/email";
 import { Badge, Button, Card, Empty, Input, Modal, PageHeader, Select } from "@/components/survey/ui";
 import { Icon } from "@/components/survey/icon";
-import { CertificateFrame, type CertData } from "@/components/survey/certificate";
+import { CertificateBoard, CertificateFrame, type CertData } from "@/components/survey/certificate";
 import { useAdminData } from "@/components/survey/admin/admin-data";
 import { useToast } from "@/components/survey/toast";
 
@@ -43,14 +45,25 @@ export function RespondentsScreen() {
   const pages = Math.max(1, Math.ceil(filtered.length / PER));
   const slice = filtered.slice((page - 1) * PER, page * PER);
 
+  const exportCsv = () => {
+    const rows = [
+      ["ชื่อ-สกุล", "อีเมล", "กิจกรรม", "เลขที่เกียรติบัตร", "วันที่ออก", "คะแนนเฉลี่ย"],
+      ...filtered.map((r) => [
+        r.name, r.email ?? "", activities.find((a) => a.id === r.activityId)?.title ?? "", r.certNo, r.dateLabel, r.avg,
+      ]),
+    ];
+    downloadCsv(`ผู้รับเกียรติบัตร-${new Date().toISOString().slice(0, 10)}.csv`, rows);
+    toast(`ส่งออกไฟล์ CSV แล้ว (${filtered.length.toLocaleString()} รายการ)`, "download");
+  };
+
   return (
     <div style={{ padding: "28px clamp(20px,4vw,36px)" }} className="fade-in">
       <PageHeader
         title="ผู้รับเกียรติบัตร"
         subtitle={`ค้นหาและตรวจสอบผู้ที่ทำแบบสอบถามแล้ว ${respondents.length.toLocaleString()} คน`}
         action={<div style={{ display: "flex", gap: 10 }}>
-          <Button variant="outline" onClick={() => toast("ส่งออกไฟล์ CSV แล้ว", "download")}><Icon name="file-spreadsheet" size={15} />CSV</Button>
-          <Button variant="outline" onClick={() => toast("ส่งออกไฟล์ PDF แล้ว", "download")}><Icon name="file-text" size={15} />PDF</Button>
+          <Button variant="outline" onClick={exportCsv}><Icon name="file-spreadsheet" size={15} />CSV</Button>
+          <Button variant="outline" onClick={() => window.print()}><Icon name="file-text" size={15} />PDF</Button>
         </div>}
       />
 
@@ -136,21 +149,50 @@ export function RespondentsScreen() {
 
 function CertModalBody({ record, activity }: { record: Respondent; activity: Activity }) {
   const toast = useToast();
+  const { college } = useAdminData();
   const data: CertData = {
     template: activity.certTemplate, recipientName: record.name, activityTitle: activity.title,
     activityType: activity.type, hours: activity.hours, dateLabel: activity.dateLabel,
-    issueDateLong: thaiLongDate(record.dateISO), certNo: record.certNo, college: COLLEGE,
-    signatureVariant: getSignatureVariant(), signatureName: COLLEGE.director, signatureTitle: COLLEGE.directorTitle,
+    issueDateLong: thaiLongDate(record.dateISO), certNo: record.certNo, college,
+    signatureVariant: college.signatureVariant, signatureImage: college.signatureImage,
+    signatureName: college.director, signatureTitle: college.directorTitle, logoImage: college.logoImage,
     verifyUrl: verifyUrlFor(record.certNo),
   };
+  const { ref: exportRef, busy, downloadPdf } = useCertificateExport();
+  const baseFilename = `certificate-${record.certNo.replace(/[^a-zA-Z0-9]/g, "-")}`;
+  const [sending, setSending] = useState(false);
+
+  const resend = async () => {
+    setSending(true);
+    try {
+      await resendCertificateEmail(record.certNo);
+      toast("ส่งอีเมลให้ผู้รับแล้ว", "mail");
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "ส่งอีเมลไม่สำเร็จ");
+    } finally {
+      setSending(false);
+    }
+  };
+
   return (
     <div style={{ padding: 22 }}>
       <div style={{ display: "flex", justifyContent: "center", marginBottom: 18, overflowX: "auto" }}>
         <CertificateFrame width={840} data={data} />
       </div>
+      <div style={{ position: "fixed", left: -9999, top: 0, pointerEvents: "none" }} aria-hidden>
+        <div ref={exportRef} style={{ width: 1000, height: 707 }}><CertificateBoard data={data} /></div>
+      </div>
       <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
-        <Button onClick={() => toast("เริ่มดาวน์โหลด PDF แล้ว", "download")}><Icon name="download" size={15} />ดาวน์โหลด PDF</Button>
-        <Button variant="outline" onClick={() => toast("ส่งอีเมลให้ผู้รับแล้ว", "mail")}><Icon name="mail" size={15} />ส่งอีเมลซ้ำ</Button>
+        <Button onClick={() => downloadPdf(`${baseFilename}.pdf`)} disabled={!!busy} style={busy ? { opacity: 0.6, cursor: "not-allowed" } : {}}>
+          <Icon name="download" size={15} />{busy === "pdf" ? "กำลังสร้าง PDF…" : "ดาวน์โหลด PDF"}
+        </Button>
+        <Button
+          variant="outline" onClick={resend} disabled={sending || !record.email}
+          style={sending || !record.email ? { opacity: 0.5, cursor: "not-allowed" } : {}}
+          title={record.email ? undefined : "ไม่พบอีเมลของผู้รับเกียรติบัตรนี้"}
+        >
+          <Icon name="mail" size={15} />{sending ? "กำลังส่ง…" : "ส่งอีเมลซ้ำ"}
+        </Button>
       </div>
     </div>
   );

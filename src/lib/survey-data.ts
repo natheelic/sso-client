@@ -49,6 +49,7 @@ export interface CertTemplate {
 export interface Respondent {
   id: string;
   name: string;
+  email: string | null;
   activityId: string;
   certNo: string;
   dateISO: string;
@@ -65,6 +66,7 @@ export interface College {
   directorTitle: string;
 }
 
+/** Seed value only (see prisma/seed.ts) — the live app reads/writes college info via src/lib/college-db.ts. */
 export const COLLEGE: College = {
   name: "วิทยาลัยการอาชีพลอง",
   nameEn: "Long Industrial and Community Education College",

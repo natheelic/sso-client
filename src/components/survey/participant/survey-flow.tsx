@@ -8,13 +8,14 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
-  COLLEGE, RATING_LABELS, thaiLongDate, verifyUrlFor, type Activity, type Question,
+  RATING_LABELS, thaiLongDate, verifyUrlFor, type Activity, type Question,
 } from "@/lib/survey-data";
-import { getSignatureVariant } from "@/lib/survey-progress";
+import type { CollegeInfo } from "@/lib/college-db";
 import { submitSurvey, type CertRecord } from "@/lib/submissions-db";
+import { useCertificateExport } from "@/lib/cert-export";
 import { Badge, Button, Card, Field, Input, Progress, Select } from "@/components/survey/ui";
 import { Icon } from "@/components/survey/icon";
-import { CertificateFrame, type CertData } from "@/components/survey/certificate";
+import { CertificateBoard, CertificateFrame, type CertData } from "@/components/survey/certificate";
 import { UserHeader, type ParticipantUser } from "@/components/survey/participant/participant-header";
 import { useToast } from "@/components/survey/toast";
 
@@ -221,7 +222,7 @@ function Generating() {
   );
 }
 
-function buildCertData(record: CertRecord, activity: Activity): CertData {
+function buildCertData(record: CertRecord, activity: Activity, college: CollegeInfo): CertData {
   return {
     template: activity.certTemplate,
     recipientName: record.name,
@@ -231,19 +232,24 @@ function buildCertData(record: CertRecord, activity: Activity): CertData {
     dateLabel: activity.dateLabel,
     issueDateLong: thaiLongDate(record.issueISO),
     certNo: record.certNo,
-    college: COLLEGE,
-    signatureVariant: record.signatureVariant,
-    signatureName: COLLEGE.director,
-    signatureTitle: COLLEGE.directorTitle,
+    college,
+    signatureVariant: college.signatureVariant,
+    signatureImage: college.signatureImage,
+    signatureName: college.director,
+    signatureTitle: college.directorTitle,
+    logoImage: college.logoImage,
     verifyUrl: verifyUrlFor(record.certNo),
   };
 }
 
-function CertificateDelivery({ record, activity, user }: { record: CertRecord; activity: Activity; user: ParticipantUser }) {
+function CertificateDelivery({ record, activity, user, college }: { record: CertRecord; activity: Activity; user: ParticipantUser; college: CollegeInfo }) {
   const router = useRouter();
   const toast = useToast();
   const wrapRef = useRef<HTMLDivElement>(null);
   const [w, setW] = useState(880);
+  const data = buildCertData(record, activity, college);
+  const { ref: exportRef, busy, downloadPdf, downloadPng } = useCertificateExport();
+  const baseFilename = `certificate-${record.certNo.replace(/[^a-zA-Z0-9]/g, "-")}`;
 
   useEffect(() => {
     const fit = () => { if (wrapRef.current) setW(Math.min(960, wrapRef.current.clientWidth)); };
@@ -251,6 +257,15 @@ function CertificateDelivery({ record, activity, user }: { record: CertRecord; a
     window.addEventListener("resize", fit);
     return () => window.removeEventListener("resize", fit);
   }, []);
+
+  const share = async () => {
+    try {
+      await navigator.clipboard.writeText(`https://${data.verifyUrl}`);
+      toast("คัดลอกลิงก์ตรวจสอบแล้ว", "share-2");
+    } catch {
+      toast("คัดลอกลิงก์ไม่สำเร็จ");
+    }
+  };
 
   return (
     <div style={{ minHeight: "100vh" }}>
@@ -265,13 +280,22 @@ function CertificateDelivery({ record, activity, user }: { record: CertRecord; a
         </div>
 
         <div ref={wrapRef} style={{ display: "flex", justifyContent: "center", marginBottom: 26 }}>
-          <CertificateFrame width={w} data={buildCertData(record, activity)} />
+          <CertificateFrame width={w} data={data} />
+        </div>
+
+        {/* Offscreen full-resolution board — what actually gets captured for PDF/PNG, independent of the scaled preview above. */}
+        <div style={{ position: "fixed", left: -9999, top: 0, pointerEvents: "none" }} aria-hidden>
+          <div ref={exportRef} style={{ width: 1000, height: 707 }}><CertificateBoard data={data} /></div>
         </div>
 
         <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
-          <Button size="lg" onClick={() => toast("เริ่มดาวน์โหลดไฟล์ PDF แล้ว", "download")}><Icon name="download" size={16} />ดาวน์โหลด PDF</Button>
-          <Button size="lg" variant="outline" onClick={() => toast("บันทึกรูปภาพ PNG แล้ว", "image")}><Icon name="image" size={16} />บันทึกรูปภาพ</Button>
-          <Button size="lg" variant="outline" onClick={() => toast("คัดลอกลิงก์ตรวจสอบแล้ว", "share-2")}><Icon name="share-2" size={16} />แชร์</Button>
+          <Button size="lg" onClick={() => downloadPdf(`${baseFilename}.pdf`)} disabled={!!busy} style={busy ? { opacity: 0.6, cursor: "not-allowed" } : {}}>
+            <Icon name="download" size={16} />{busy === "pdf" ? "กำลังสร้าง PDF…" : "ดาวน์โหลด PDF"}
+          </Button>
+          <Button size="lg" variant="outline" onClick={() => downloadPng(`${baseFilename}.png`)} disabled={!!busy} style={busy ? { opacity: 0.6, cursor: "not-allowed" } : {}}>
+            <Icon name="image" size={16} />{busy === "png" ? "กำลังบันทึก…" : "บันทึกรูปภาพ"}
+          </Button>
+          <Button size="lg" variant="outline" onClick={share}><Icon name="share-2" size={16} />แชร์</Button>
           <Button size="lg" variant="ghost" onClick={() => router.push("/")}><Icon name="shield-check" size={16} />กลับหน้าหลัก</Button>
         </div>
       </main>
@@ -280,8 +304,8 @@ function CertificateDelivery({ record, activity, user }: { record: CertRecord; a
 }
 
 export function SurveyFlow({
-  activity, user, startAtCert, initialRecord,
-}: { activity: Activity; user: ParticipantUser; startAtCert?: boolean; initialRecord: CertRecord | null }) {
+  activity, user, startAtCert, initialRecord, college,
+}: { activity: Activity; user: ParticipantUser; startAtCert?: boolean; initialRecord: CertRecord | null; college: CollegeInfo }) {
   const router = useRouter();
   const toast = useToast();
   const [phase, setPhase] = useState<Phase>(startAtCert && initialRecord ? "cert" : "survey");
@@ -290,7 +314,7 @@ export function SurveyFlow({
   const finish = async (name: string, answers: AnswerMap) => {
     setPhase("generating");
     try {
-      const rec = await submitSurvey(activity.id, name, answers, getSignatureVariant());
+      const rec = await submitSurvey(activity.id, name, answers);
       setRecord(rec);
       setPhase("cert");
     } catch {
@@ -302,6 +326,6 @@ export function SurveyFlow({
   };
 
   if (phase === "generating") return <Generating />;
-  if (phase === "cert" && record) return <CertificateDelivery record={record} activity={activity} user={user} />;
+  if (phase === "cert" && record) return <CertificateDelivery record={record} activity={activity} user={user} college={college} />;
   return <SurveyRunner activity={activity} user={user} onExit={() => router.push(`/activities/${activity.id}`)} onFinish={finish} />;
 }

@@ -1,10 +1,9 @@
 "use server";
 
 /**
- * DB-backed survey submission + certificate issuance — replaces the
- * sessionStorage-based getRecord/saveRecord in survey-progress.ts. The
- * server, not the client, is the source of truth for who submitted what and
- * which certificate they hold: every function here re-derives the caller's
+ * DB-backed survey submission + certificate issuance. The server, not the
+ * client, is the source of truth for who submitted what and which
+ * certificate they hold: every function here re-derives the caller's
  * identity from the SSO session rather than trusting a client-supplied
  * userId.
  */
@@ -12,6 +11,7 @@ import { Prisma } from "@/generated/prisma/client";
 import { db } from "@/lib/db";
 import { auth } from "@/lib/auth";
 import { thaiShortDate, type Respondent } from "@/lib/survey-data";
+import { getCollegeSettings } from "@/lib/college-db";
 
 export interface CertRecord {
   name: string;
@@ -19,7 +19,6 @@ export interface CertRecord {
   /** Buddhist-era ISO-like issue date, e.g. "2568-05-14" */
   issueISO: string;
   activityId: string;
-  signatureVariant: number;
 }
 
 export type AnswerMap = Record<string, number | string | string[] | undefined>;
@@ -37,15 +36,23 @@ function isCertNoConflict(err: unknown): boolean {
   );
 }
 
-/** Upserts a certificate for (activityId, userId), retrying with a bumped serial on a certNo collision. */
+/**
+ * Upserts a certificate for (activityId, userId), retrying with a bumped
+ * serial on a certNo collision. signatureVariant is recorded as-issued but
+ * every render path (survey delivery, verify page, admin preview) actually
+ * displays the college's *current* signature/logo settings, not this frozen
+ * value — see getCollegeSettings().
+ */
 async function issueCertificate(
   activity: { id: string; code: string; issueDate: string },
   userId: string,
   recipientName: string,
-  signatureVariant: number,
 ): Promise<CertRecord> {
   const yearShort = activity.issueDate.slice(2, 4);
-  const base = await db.certificateRecord.count({ where: { activityId: activity.id } });
+  const [base, college] = await Promise.all([
+    db.certificateRecord.count({ where: { activityId: activity.id } }),
+    getCollegeSettings(),
+  ]);
 
   for (let attempt = 0; attempt < 5; attempt++) {
     const serial = pad(base + 1 + attempt, 4);
@@ -53,10 +60,10 @@ async function issueCertificate(
     try {
       const row = await db.certificateRecord.upsert({
         where: { activityId_userId: { activityId: activity.id, userId } },
-        create: { certNo, activityId: activity.id, userId, recipientName, issueDate: activity.issueDate, signatureVariant },
-        update: { certNo, recipientName, issueDate: activity.issueDate, signatureVariant, issuedAt: new Date() },
+        create: { certNo, activityId: activity.id, userId, recipientName, issueDate: activity.issueDate, signatureVariant: college.signatureVariant },
+        update: { certNo, recipientName, issueDate: activity.issueDate, signatureVariant: college.signatureVariant, issuedAt: new Date() },
       });
-      return { name: row.recipientName, certNo: row.certNo, issueISO: row.issueDate, activityId: row.activityId, signatureVariant: row.signatureVariant };
+      return { name: row.recipientName, certNo: row.certNo, issueISO: row.issueDate, activityId: row.activityId };
     } catch (err) {
       if (isCertNoConflict(err) && attempt < 4) continue;
       throw err;
@@ -75,7 +82,6 @@ export async function submitSurvey(
   activityId: string,
   recipientName: string,
   answers: AnswerMap,
-  signatureVariant: number,
 ): Promise<CertRecord> {
   const session = await auth();
   if (!session?.user) throw new Error("Not signed in");
@@ -97,7 +103,7 @@ export async function submitSurvey(
     },
   });
 
-  return issueCertificate(activity, userId, recipientName, signatureVariant);
+  return issueCertificate(activity, userId, recipientName);
 }
 
 /** The signed-in participant's certificate for an activity, if they've completed it. */
@@ -107,9 +113,7 @@ export async function getMyCertificate(activityId: string): Promise<CertRecord |
   const row = await db.certificateRecord.findUnique({
     where: { activityId_userId: { activityId, userId: session.user.id } },
   });
-  return row
-    ? { name: row.recipientName, certNo: row.certNo, issueISO: row.issueDate, activityId: row.activityId, signatureVariant: row.signatureVariant }
-    : null;
+  return row ? { name: row.recipientName, certNo: row.certNo, issueISO: row.issueDate, activityId: row.activityId } : null;
 }
 
 /** Activity ids the signed-in participant already holds a certificate for. */
@@ -129,7 +133,6 @@ export interface PublicCertificate {
   certNo: string;
   recipientName: string;
   issueDate: string;
-  signatureVariant: number;
   activity: {
     title: string;
     type: string;
@@ -155,7 +158,6 @@ export async function getCertificateByCertNo(certNo: string): Promise<PublicCert
     certNo: row.certNo,
     recipientName: row.recipientName,
     issueDate: row.issueDate,
-    signatureVariant: row.signatureVariant,
     activity: {
       title: row.activity.title,
       type: row.activity.type,
@@ -180,7 +182,7 @@ function ratingAverage(answers: unknown): number {
 export async function getRespondents(): Promise<Respondent[]> {
   const [certs, submissions] = await Promise.all([
     db.certificateRecord.findMany({ orderBy: { issuedAt: "desc" } }),
-    db.submission.findMany({ select: { activityId: true, userId: true, answers: true } }),
+    db.submission.findMany({ select: { activityId: true, userId: true, answers: true, userEmail: true } }),
   ]);
   const subByKey = new Map(submissions.map((s) => [`${s.activityId}:${s.userId}`, s]));
 
@@ -189,6 +191,7 @@ export async function getRespondents(): Promise<Respondent[]> {
     return {
       id: c.id,
       name: c.recipientName,
+      email: sub?.userEmail ?? null,
       activityId: c.activityId,
       certNo: c.certNo,
       dateISO: c.issueDate,

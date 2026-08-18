@@ -3,13 +3,13 @@
  * include this app's SSO_CLIENT_ID in the apps[] claim.
  */
 import { auth, signOut } from "@/lib/auth";
-import { COLLEGE } from "@/lib/survey-data";
+import { getCollegeSettings } from "@/lib/college-db";
 import { Icon } from "@/components/survey/icon";
 import { Button } from "@/components/survey/ui";
 import { ThemeToggle } from "@/components/theme-toggle";
 
 export default async function ForbiddenPage() {
-  const session = await auth();
+  const [session, college] = await Promise.all([auth(), getCollegeSettings()]);
   const user = session?.user as { email?: string | null; name?: string | null } | undefined;
 
   return (
@@ -28,7 +28,7 @@ export default async function ForbiddenPage() {
         {user?.email ? (
           <p style={{ fontSize: 14, color: "var(--muted-foreground)", marginTop: 10, lineHeight: 1.7 }}>
             บัญชี <strong style={{ color: "var(--foreground)" }}>{user.email}</strong> ยังไม่ได้รับสิทธิ์เข้าใช้งาน
-            <strong> ระบบแบบสอบถามและเกียรติบัตร</strong> ของ{COLLEGE.name} กรุณาติดต่อผู้ดูแลระบบ
+            <strong> ระบบแบบสอบถามและเกียรติบัตร</strong> ของ{college.name} กรุณาติดต่อผู้ดูแลระบบ
           </p>
         ) : (
           <p style={{ fontSize: 14, color: "var(--muted-foreground)", marginTop: 10, lineHeight: 1.7 }}>

@@ -1,7 +1,7 @@
 "use client";
 
 /** AdminSettings — college info + admin account + SSO connection (ported from AdminResults.jsx AdminSettings). */
-import { COLLEGE } from "@/lib/survey-data";
+import { useState, type ChangeEvent } from "react";
 import { Badge, Button, Card, Field, Input, PageHeader } from "@/components/survey/ui";
 import { Icon } from "@/components/survey/icon";
 import { useToast } from "@/components/survey/toast";
@@ -10,7 +10,25 @@ import { getInitial } from "@/lib/format";
 
 export function SettingsScreen() {
   const toast = useToast();
-  const { adminUser: admin } = useAdminData();
+  const { adminUser: admin, college, saveCollegeInfo } = useAdminData();
+  const [form, setForm] = useState(college);
+  const [saving, setSaving] = useState(false);
+  const upd = (k: keyof typeof form) => (e: ChangeEvent<HTMLInputElement>) => setForm((f) => ({ ...f, [k]: e.target.value }));
+
+  const save = async () => {
+    setSaving(true);
+    try {
+      await saveCollegeInfo({
+        name: form.name, nameEn: form.nameEn, affiliation: form.affiliation,
+        province: form.province, director: form.director, directorTitle: form.directorTitle,
+      });
+      toast("บันทึกข้อมูลวิทยาลัยแล้ว");
+    } catch {
+      toast("บันทึกไม่สำเร็จ กรุณาลองใหม่อีกครั้ง");
+    } finally {
+      setSaving(false);
+    }
+  };
 
   return (
     <div style={{ padding: "28px clamp(20px,4vw,36px)", maxWidth: 760 }} className="fade-in">
@@ -20,14 +38,18 @@ export function SettingsScreen() {
         <Card style={{ padding: 22 }}>
           <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 16 }}>ข้อมูลวิทยาลัย</div>
           <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-            <Field label="ชื่อวิทยาลัย"><Input defaultValue={COLLEGE.name} /></Field>
-            <Field label="สังกัด"><Input defaultValue={COLLEGE.affiliation} /></Field>
+            <Field label="ชื่อวิทยาลัย"><Input value={form.name} onChange={upd("name")} /></Field>
+            <Field label="สังกัด"><Input value={form.affiliation} onChange={upd("affiliation")} /></Field>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
-              <Field label="ชื่อผู้อำนวยการ"><Input defaultValue={COLLEGE.director} /></Field>
-              <Field label="ตำแหน่ง"><Input defaultValue={COLLEGE.directorTitle} /></Field>
+              <Field label="ชื่อผู้อำนวยการ"><Input value={form.director} onChange={upd("director")} /></Field>
+              <Field label="ตำแหน่ง"><Input value={form.directorTitle} onChange={upd("directorTitle")} /></Field>
             </div>
           </div>
-          <div style={{ marginTop: 16 }}><Button onClick={() => toast("บันทึกข้อมูลวิทยาลัยแล้ว")}><Icon name="check" size={15} />บันทึก</Button></div>
+          <div style={{ marginTop: 16 }}>
+            <Button onClick={save} disabled={saving} style={saving ? { opacity: 0.6, cursor: "not-allowed" } : {}}>
+              <Icon name="check" size={15} />{saving ? "กำลังบันทึก…" : "บันทึก"}
+            </Button>
+          </div>
         </Card>
 
         <Card style={{ padding: 22 }}>

@@ -92,17 +92,23 @@ model CertificateRecord {
 }
 
 /// College info shown on certificates and the admin settings screen.
-/// Singleton row (fixed id 1). Not wired to settings.tsx yet — that's
-/// roadmap Phase 4; modeled now for schema completeness.
+/// Singleton row (fixed id 1). signatureImage/logoImage are data: URIs
+/// (small PNGs — a signature scribble, a college seal) stored inline rather
+/// than in object storage; null means "use the built-in placeholder art."
+/// signatureVariant picks between the two placeholder squiggles when no
+/// real signature has been uploaded yet.
 model CollegeSettings {
-  id            Int      @id @default(1)
-  name          String
-  nameEn        String
-  affiliation   String
-  province      String
-  director      String
-  directorTitle String
-  updatedAt     DateTime @updatedAt
+  id               Int      @id @default(1)
+  name             String
+  nameEn           String
+  affiliation      String
+  province         String
+  director         String
+  directorTitle    String
+  signatureImage   String?
+  logoImage        String?
+  signatureVariant Int      @default(0)
+  updatedAt        DateTime @updatedAt
 
   @@map("college_settings")
 }

@@ -4,10 +4,28 @@
 import { useEffect, useState } from "react";
 import { RATING_LABELS, type Question } from "@/lib/survey-data";
 import { getSubmissionAnswers, type AnswerMap } from "@/lib/submissions-db";
+import { downloadCsv } from "@/lib/csv";
 import { Badge, Button, Card, Empty, PageHeader, Select } from "@/components/survey/ui";
 import { Icon } from "@/components/survey/icon";
 import { useAdminData } from "@/components/survey/admin/admin-data";
 import { useToast } from "@/components/survey/toast";
+
+/** Per-choice counts for one question, shared by the on-screen chart and the CSV export. */
+function summarizeQuestion(q: Question, answers: AnswerMap[]): { label: string; count: number }[] {
+  if (q.type === "rating") {
+    const cnt = [0, 0, 0, 0, 0];
+    answers.forEach((a) => { const v = a[q.id]; if (typeof v === "number" && v >= 1 && v <= 5) cnt[v - 1]++; });
+    return cnt.map((count, i) => ({ label: `${i + 1} · ${RATING_LABELS[i]}`, count })).reverse();
+  }
+  const opts = q.options ?? [];
+  return opts.map((opt) => ({
+    label: opt,
+    count: answers.filter((a) => {
+      const v = a[q.id];
+      return q.type === "checkbox" ? Array.isArray(v) && v.includes(opt) : v === opt;
+    }).length,
+  }));
+}
 
 export function ResultsScreen() {
   const { activities, counts } = useAdminData();
@@ -25,12 +43,26 @@ export function ResultsScreen() {
     return () => { cancelled = true; };
   }, [sel]);
 
+  const exportCsv = () => {
+    if (!activity) return;
+    const rows: (string | number)[][] = [["คำถาม", "ประเภท", "ตัวเลือก/คะแนน", "จำนวน", "ร้อยละ"]];
+    activity.questions.forEach((q) => {
+      const summary = summarizeQuestion(q, answers);
+      const total = summary.reduce((s, r) => s + r.count, 0) || 1;
+      summary.forEach(({ label, count }) => {
+        rows.push([q.title, q.type, label, count, `${Math.round((count / total) * 100)}%`]);
+      });
+    });
+    downloadCsv(`สรุปผล-${activity.code}-${new Date().toISOString().slice(0, 10)}.csv`, rows);
+    toast("ส่งออกไฟล์ CSV แล้ว", "download");
+  };
+
   return (
     <div style={{ padding: "28px clamp(20px,4vw,36px)" }} className="fade-in">
       <PageHeader
         title="สรุปผลแบบสอบถาม"
         subtitle="ภาพรวมคำตอบรายข้อของแต่ละกิจกรรม"
-        action={<Button variant="outline" onClick={() => toast("ส่งออกรายงานสรุป PDF แล้ว", "download")}><Icon name="download" size={15} />ส่งออกรายงาน</Button>}
+        action={<Button variant="outline" onClick={exportCsv} disabled={n === 0}><Icon name="download" size={15} />ส่งออกรายงาน</Button>}
       />
 
       <Card style={{ padding: 14, marginBottom: 20, display: "flex", gap: 14, alignItems: "center", flexWrap: "wrap" }}>

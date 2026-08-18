@@ -21,8 +21,12 @@ export interface CertData {
   certNo: string;
   college: College;
   signatureVariant?: number;
+  /** Uploaded signature PNG (data: URI); falls back to the placeholder squiggle when absent. */
+  signatureImage?: string | null;
   signatureName: string;
   signatureTitle: string;
+  /** Uploaded logo/seal PNG (data: URI); falls back to the built-in emblem when absent. */
+  logoImage?: string | null;
   verifyUrl: string;
 }
 
@@ -169,7 +173,8 @@ function CertEmblem({ accent, gold }: { accent: string; gold: string }) {
 export function CertificateBoard({ data }: { data: CertData }) {
   const {
     template = "classic", recipientName, activityTitle, activityType, hours,
-    dateLabel, issueDateLong, certNo, college, signatureVariant = 0, signatureName, signatureTitle, verifyUrl,
+    dateLabel, issueDateLong, certNo, college, signatureVariant = 0, signatureImage, signatureName, signatureTitle,
+    logoImage, verifyUrl,
   } = data;
   const t = TEMPLATES[template] || TEMPLATES.classic;
 
@@ -185,7 +190,9 @@ export function CertificateBoard({ data }: { data: CertData }) {
 
       <div style={{ position: "absolute", inset: 0, padding: "58px 80px 56px", display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center" }}>
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
-          <CertEmblem accent={t.accent} gold={t.gold} />
+          {logoImage
+            ? <img src={logoImage} alt="" width={58} height={58} style={{ objectFit: "contain" }} />
+            : <CertEmblem accent={t.accent} gold={t.gold} />}
           <div style={{ fontFamily: "var(--font-serif-th)", fontSize: 23, fontWeight: 700, color: t.accent, marginTop: 8 }}>{college.name}</div>
           <div style={{ fontSize: 13.5, color: t.ink, opacity: 0.7 }}>{college.affiliation}</div>
         </div>
@@ -229,7 +236,9 @@ export function CertificateBoard({ data }: { data: CertData }) {
           </div>
 
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", minWidth: 230 }}>
-            <SignatureMark color={t.accent} width={150} variant={signatureVariant} />
+            {signatureImage
+              ? <img src={signatureImage} alt="" style={{ width: 150, height: 50, objectFit: "contain" }} />
+              : <SignatureMark color={t.accent} width={150} variant={signatureVariant} />}
             <div style={{ width: 200, height: 1, background: t.ink, opacity: 0.35, marginTop: 2 }} />
             <div style={{ marginTop: 7, fontWeight: 700, fontSize: 16 }}>( {signatureName} )</div>
             <div style={{ fontSize: 13.5, opacity: 0.8 }}>{signatureTitle}</div>

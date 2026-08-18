@@ -4,7 +4,7 @@
  * NextAuth against the central SSO server.
  */
 import { signIn } from "@/lib/auth";
-import { COLLEGE } from "@/lib/survey-data";
+import { getCollegeSettings } from "@/lib/college-db";
 import { Emblem } from "@/components/survey/emblem";
 import { Icon } from "@/components/survey/icon";
 import { Button, Card } from "@/components/survey/ui";
@@ -15,7 +15,7 @@ interface Props {
 }
 
 export default async function LoginPage({ searchParams }: Props) {
-  const { callbackUrl } = await searchParams;
+  const [{ callbackUrl }, college] = await Promise.all([searchParams, getCollegeSettings()]);
 
   return (
     <main style={{ position: "relative", minHeight: "100vh", display: "grid", placeItems: "center", padding: 20, background: "var(--background)" }}>
@@ -27,7 +27,7 @@ export default async function LoginPage({ searchParams }: Props) {
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 16, marginBottom: 22 }}>
           <Emblem size={66} />
           <div style={{ textAlign: "center" }}>
-            <div style={{ fontFamily: "var(--font-serif-th)", fontSize: 22, fontWeight: 700 }}>{COLLEGE.name}</div>
+            <div style={{ fontFamily: "var(--font-serif-th)", fontSize: 22, fontWeight: 700 }}>{college.name}</div>
             <div style={{ fontSize: 13, color: "var(--muted-foreground)", marginTop: 2 }}>ระบบแบบสอบถามและเกียรติบัตรออนไลน์</div>
           </div>
         </div>
@@ -53,7 +53,7 @@ export default async function LoginPage({ searchParams }: Props) {
         </Card>
 
         <p style={{ textAlign: "center", fontSize: 12, color: "var(--muted-foreground)", marginTop: 16 }}>
-          ขับเคลื่อนด้วยเซิร์ฟเวอร์ SSO กลาง · {COLLEGE.affiliation}
+          ขับเคลื่อนด้วยเซิร์ฟเวอร์ SSO กลาง · {college.affiliation}
         </p>
       </div>
     </main>
