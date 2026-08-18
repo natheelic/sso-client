@@ -19,7 +19,7 @@ export function ActivitiesScreen() {
   const router = useRouter();
   const { activities, counts, createActivity } = useAdminData();
 
-  const onCreate = () => router.push(`/admin/activities/${createActivity()}`);
+  const onCreate = async () => router.push(`/admin/activities/${await createActivity()}`);
 
   return (
     <div style={{ padding: "28px clamp(20px,4vw,36px)" }} className="fade-in">

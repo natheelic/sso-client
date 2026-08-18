@@ -1,10 +1,12 @@
 /**
- * survey-data.ts — mock data for the survey + certificate platform.
+ * survey-data.ts — reference data for the survey + certificate platform.
  * วิทยาลัยการอาชีพลอง (Long Industrial and Community Education College)
  *
  * Ported from the Claude Design handoff (survey/project/app/data.jsx).
- * This is prototype data — no database yet. The admin screens mutate an
- * in-memory copy via AdminDataProvider; respondents are read-only.
+ * ACTIVITIES is now only the seed source for the DB (see prisma/seed.ts) —
+ * the live app reads activities from Postgres via src/lib/activities-db.ts.
+ * RESPONDENTS is still mock/generated; real submissions are a later
+ * roadmap phase.
  */
 
 export type TemplateId = "classic" | "formal" | "modern" | "emerald";

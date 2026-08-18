@@ -1,13 +1,16 @@
 "use client";
 
 /**
- * AdminDataProvider — shared, mutable in-memory activity state for the admin
- * console (seeded from the mock data). Lives in the admin layout so edits,
- * new activities, and template assignments persist across admin navigation.
- * Respondent counts are derived once from the static respondent list.
+ * AdminDataProvider — shared activity state for the admin console, seeded
+ * from the DB by the server layout. Mutations write through to the DB via
+ * the server actions in activities-db.ts, then update local state
+ * optimistically so admin navigation doesn't need a full refetch.
+ * Respondent counts are still derived from the static mock respondent list
+ * (real submissions land in a later roadmap phase).
  */
 import { createContext, useContext, useMemo, useState, type ReactNode } from "react";
-import { ACTIVITIES, RESPONDENTS, type Activity, type TemplateId } from "@/lib/survey-data";
+import { RESPONDENTS, type Activity, type TemplateId } from "@/lib/survey-data";
+import * as activitiesDb from "@/lib/activities-db";
 
 /** The signed-in SSO survey creator (passed down from the server layout). */
 export interface AdminUser {
@@ -21,19 +24,17 @@ interface AdminDataValue {
   activities: Activity[];
   counts: Record<string, number>;
   /** create a blank draft activity, returns its id */
-  createActivity: () => string;
-  saveActivity: (form: Activity) => void;
-  assignTemplate: (id: string, tmpl: TemplateId) => void;
+  createActivity: () => Promise<string>;
+  saveActivity: (form: Activity) => Promise<void>;
+  assignTemplate: (id: string, tmpl: TemplateId) => Promise<void>;
 }
 
 const AdminDataContext = createContext<AdminDataValue | null>(null);
 
-function cloneActivity(a: Activity): Activity {
-  return { ...a, questions: a.questions.map((q) => ({ ...q, options: q.options ? [...q.options] : undefined })) };
-}
-
-export function AdminDataProvider({ adminUser, children }: { adminUser: AdminUser; children: ReactNode }) {
-  const [activities, setActivities] = useState<Activity[]>(() => ACTIVITIES.map(cloneActivity));
+export function AdminDataProvider({
+  adminUser, initialActivities, children,
+}: { adminUser: AdminUser; initialActivities: Activity[]; children: ReactNode }) {
+  const [activities, setActivities] = useState<Activity[]>(initialActivities);
 
   const counts = useMemo(() => {
     const c: Record<string, number> = {};
@@ -41,22 +42,21 @@ export function AdminDataProvider({ adminUser, children }: { adminUser: AdminUse
     return c;
   }, []);
 
-  const createActivity = () => {
-    const id = "act-new-" + Date.now();
-    const blank: Activity = {
-      id, code: "LICEC-68-0" + Math.floor(Math.random() * 90 + 10), title: "", type: "โครงการอบรม",
-      hours: 6, location: "", dateLabel: "", issueDate: "2568-06-01", status: "ร่าง",
-      certTemplate: "classic", target: 50, description: "", questions: [], __new: true,
-    };
-    setActivities((l) => [blank, ...l]);
-    return id;
+  const createActivity = async () => {
+    const created = await activitiesDb.createActivity();
+    setActivities((l) => [{ ...created, __new: true }, ...l]);
+    return created.id;
   };
 
-  const saveActivity = (form: Activity) =>
+  const saveActivity = async (form: Activity) => {
+    await activitiesDb.saveActivity(form);
     setActivities((l) => l.map((a) => (a.id === form.id ? { ...form, __new: false } : a)));
+  };
 
-  const assignTemplate = (id: string, tmpl: TemplateId) =>
+  const assignTemplate = async (id: string, tmpl: TemplateId) => {
+    await activitiesDb.assignTemplate(id, tmpl);
     setActivities((l) => l.map((a) => (a.id === id ? { ...a, certTemplate: tmpl } : a)));
+  };
 
   return (
     <AdminDataContext.Provider value={{ adminUser, activities, counts, createActivity, saveActivity, assignTemplate }}>

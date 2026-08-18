@@ -1,0 +1,107 @@
+// Phase 0 of the development roadmap: a real data layer behind the survey +
+// certificate console. Field types deliberately mirror the TS shapes in
+// src/lib/survey-data.ts (e.g. `status`/`certTemplate`/`type` stay plain
+// strings, not Postgres enums) so the existing UI code's string comparisons
+// keep working unchanged.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+/// A course, workshop, or event participants can survey and receive a
+/// certificate for. Certificate template assignment is a single field here
+/// (not a separate join table) — an activity has exactly one active template,
+/// matching how templates.tsx already models it.
+model Activity {
+  id           String   @id
+  code         String   @unique
+  title        String
+  type         String
+  hours        Int
+  location     String
+  dateLabel    String
+  issueDate    String
+  status       String
+  certTemplate String   @default("classic")
+  target       Int
+  description  String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  questions    Question[]
+  submissions  Submission[]
+  certificates CertificateRecord[]
+
+  @@map("activities")
+}
+
+/// One survey question belonging to an activity. `options` is unused for
+/// "rating" questions. `order` preserves the admin's chosen question order.
+model Question {
+  id         String  @id
+  activityId String
+  activity   Activity @relation(fields: [activityId], references: [id], onDelete: Cascade)
+  type       String
+  title      String
+  required   Boolean @default(true)
+  options    String[]
+  order      Int
+
+  @@index([activityId])
+  @@map("questions")
+}
+
+/// One participant's answers to one activity's survey.
+/// Not written by the app yet — scaffolded now so roadmap Phase 1 (real
+/// submissions) has a table to land in.
+model Submission {
+  id          String   @id @default(cuid())
+  activityId  String
+  activity    Activity @relation(fields: [activityId], references: [id], onDelete: Cascade)
+  userId      String
+  userName    String
+  userEmail   String?
+  answers     Json
+  submittedAt DateTime @default(now())
+
+  @@unique([activityId, userId])
+  @@map("submissions")
+}
+
+/// An issued certificate.
+/// Not written by the app yet — scaffolded now so roadmap Phase 1 (issuance)
+/// and Phase 2 (the public /verify page) have a table to land in.
+model CertificateRecord {
+  id               String   @id @default(cuid())
+  certNo           String   @unique
+  activityId       String
+  activity         Activity @relation(fields: [activityId], references: [id], onDelete: Cascade)
+  userId           String
+  recipientName    String
+  issueDate        String
+  signatureVariant Int      @default(0)
+  issuedAt         DateTime @default(now())
+
+  @@map("certificate_records")
+}
+
+/// College info shown on certificates and the admin settings screen.
+/// Singleton row (fixed id 1). Not wired to settings.tsx yet — that's
+/// roadmap Phase 4; modeled now for schema completeness.
+model CollegeSettings {
+  id            Int      @id @default(1)
+  name          String
+  nameEn        String
+  affiliation   String
+  province      String
+  director      String
+  directorTitle String
+  updatedAt     DateTime @updatedAt
+
+  @@map("college_settings")
+}

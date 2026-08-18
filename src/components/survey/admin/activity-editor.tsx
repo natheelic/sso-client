@@ -41,13 +41,13 @@ export function ActivityEditorScreen({ id, initialTab = "detail" }: { id: string
   return <Editor key={activity.id} activity={activity} initialTab={initialTab} onSave={saveActivity} onBack={() => router.push("/admin/activities")} />;
 }
 
-function Editor({ activity, initialTab, onSave, onBack }: { activity: Activity; initialTab: string; onSave: (a: Activity) => void; onBack: () => void }) {
+function Editor({ activity, initialTab, onSave, onBack }: { activity: Activity; initialTab: string; onSave: (a: Activity) => Promise<void>; onBack: () => void }) {
   const toast = useToast();
   const [tab, setTab] = useState(initialTab === "questions" ? "questions" : "detail");
   const [form, setForm] = useState<Activity>({ ...activity, questions: activity.questions.map((q) => ({ ...q })) });
   const upd = <K extends keyof Activity>(k: K, v: Activity[K]) => setForm((f) => ({ ...f, [k]: v }));
 
-  const save = () => { onSave(form); toast("บันทึกการเปลี่ยนแปลงแล้ว"); onBack(); };
+  const save = async () => { await onSave(form); toast("บันทึกการเปลี่ยนแปลงแล้ว"); onBack(); };
 
   return (
     <div style={{ padding: "24px clamp(20px,4vw,36px)" }} className="fade-in">
@@ -76,7 +76,7 @@ function Editor({ activity, initialTab, onSave, onBack }: { activity: Activity; 
 
       {tab === "detail"
         ? <DetailForm form={form} upd={upd} />
-        : <QuestionBuilder questions={form.questions} setQuestions={(q) => upd("questions", q)} />}
+        : <QuestionBuilder activityId={form.id} questions={form.questions} setQuestions={(q) => upd("questions", q)} />}
     </div>
   );
 }
@@ -110,9 +110,9 @@ function DetailForm({ form, upd }: { form: Activity; upd: <K extends keyof Activ
   );
 }
 
-function QuestionBuilder({ questions, setQuestions }: { questions: Question[]; setQuestions: (q: Question[]) => void }) {
+function QuestionBuilder({ activityId, questions, setQuestions }: { activityId: string; questions: Question[]; setQuestions: (q: Question[]) => void }) {
   const add = (type: QuestionType) => {
-    const base: Question = { id: "q" + Date.now(), type, title: "", required: true };
+    const base: Question = { id: `${activityId}-q${Date.now()}`, type, title: "", required: true };
     if (type !== "rating") base.options = ["ตัวเลือก 1", "ตัวเลือก 2"];
     setQuestions([...questions, base]);
   };

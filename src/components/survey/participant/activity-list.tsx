@@ -7,7 +7,7 @@
  */
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ACTIVITIES } from "@/lib/survey-data";
+import type { Activity } from "@/lib/survey-data";
 import { getRecords } from "@/lib/survey-progress";
 import { Badge, Card } from "@/components/survey/ui";
 import { Icon } from "@/components/survey/icon";
@@ -20,7 +20,7 @@ function iconForType(type: string) {
   return "sparkles";
 }
 
-export function ActivityList({ user }: { user: ParticipantUser | null }) {
+export function ActivityList({ user, activities }: { user: ParticipantUser | null; activities: Activity[] }) {
   const router = useRouter();
   const [completed, setCompleted] = useState<Record<string, boolean>>({});
 
@@ -31,7 +31,7 @@ export function ActivityList({ user }: { user: ParticipantUser | null }) {
     setCompleted(map);
   }, []);
 
-  const open = ACTIVITIES.filter((a) => a.status === "เปิดรับ");
+  const open = activities.filter((a) => a.status === "เปิดรับ");
   const firstName = user ? (user.name || user.email || "ผู้เข้าร่วม").split("@")[0].split(" ")[0] : null;
 
   return (

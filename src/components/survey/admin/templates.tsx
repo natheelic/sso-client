@@ -47,8 +47,8 @@ export function TemplatesScreen() {
     verifyUrl: "verify.licec.ac.th/c/sample",
   };
 
-  const apply = () => {
-    assignTemplate(selActivity, tmpl);
+  const apply = async () => {
+    await assignTemplate(selActivity, tmpl);
     setSignatureVariant(sigVariant);
     toast("บันทึกเทมเพลตเกียรติบัตรแล้ว");
   };

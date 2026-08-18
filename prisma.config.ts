@@ -1,0 +1,17 @@
+import { config as loadEnv } from "dotenv";
+import { defineConfig } from "prisma/config";
+
+// This app keeps its env vars in .env.local (see auth.ts) alongside the SSO
+// config — not the Prisma-conventional .env — so load that explicitly.
+loadEnv({ path: ".env.local" });
+
+export default defineConfig({
+  schema: "prisma/schema.prisma",
+  migrations: {
+    path: "prisma/migrations",
+    seed: "tsx prisma/seed.ts",
+  },
+  datasource: {
+    url: process.env["DATABASE_URL"],
+  },
+});

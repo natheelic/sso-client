@@ -1,6 +1,6 @@
 import { auth } from "@/lib/auth";
 import { notFound } from "next/navigation";
-import { ACTIVITIES } from "@/lib/survey-data";
+import { getActivity } from "@/lib/activities-db";
 import { ActivityIntro } from "@/components/survey/participant/activity-intro";
 
 /** Browsing an activity is public; login is only required to start its survey. */
@@ -11,9 +11,9 @@ export default async function ActivityIntroPage({
   params: Promise<{ id: string }>;
   searchParams: Promise<{ qr?: string }>;
 }) {
-  const [{ id }, { qr }, session] = await Promise.all([params, searchParams, auth()]);
+  const { id } = await params;
+  const [{ qr }, session, activity] = await Promise.all([searchParams, auth(), getActivity(id)]);
 
-  const activity = ACTIVITIES.find((a) => a.id === id);
   if (!activity) notFound();
 
   const u = session?.user;
