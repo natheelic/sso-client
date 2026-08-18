@@ -1,14 +1,16 @@
 "use client";
 
 /** AdminSettings — college info + admin account + SSO connection (ported from AdminResults.jsx AdminSettings). */
-import { ADMIN_USER, COLLEGE } from "@/lib/survey-data";
+import { COLLEGE } from "@/lib/survey-data";
 import { Badge, Button, Card, Field, Input, PageHeader } from "@/components/survey/ui";
 import { Icon } from "@/components/survey/icon";
 import { useToast } from "@/components/survey/toast";
+import { useAdminData } from "@/components/survey/admin/admin-data";
+import { getInitial } from "@/lib/format";
 
 export function SettingsScreen() {
   const toast = useToast();
-  const admin = ADMIN_USER;
+  const { adminUser: admin } = useAdminData();
 
   return (
     <div style={{ padding: "28px clamp(20px,4vw,36px)", maxWidth: 760 }} className="fade-in">
@@ -29,21 +31,20 @@ export function SettingsScreen() {
         </Card>
 
         <Card style={{ padding: 22 }}>
-          <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 4 }}>บัญชีผู้ดูแลระบบ</div>
+          <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 4 }}>บัญชีผู้สร้างแบบสอบถาม</div>
           <p style={{ fontSize: 13, color: "var(--muted-foreground)", margin: "0 0 16px", display: "flex", alignItems: "center", gap: 6 }}>
-            <Icon name="shield" size={14} />บัญชีผู้ดูแลแยกต่างหากจากระบบ SSO ของผู้เข้าร่วม
+            <Icon name="shield" size={14} />เข้าสู่ระบบและได้รับสิทธิ์ผ่าน SSO กลางของวิทยาลัย
           </p>
           <div style={{ display: "flex", alignItems: "center", gap: 14, padding: "14px 16px", background: "var(--secondary)", borderRadius: 10, marginBottom: 16 }}>
-            <div style={{ width: 42, height: 42, borderRadius: "50%", background: "var(--primary)", color: "var(--primary-foreground)", display: "grid", placeItems: "center", fontSize: 16, fontWeight: 600 }}>{admin.name[0]}</div>
-            <div style={{ flex: 1 }}>
+            <div style={{ width: 42, height: 42, borderRadius: "50%", background: "var(--primary)", color: "var(--primary-foreground)", display: "grid", placeItems: "center", fontSize: 16, fontWeight: 600 }}>{getInitial(admin.name, admin.email)}</div>
+            <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontWeight: 600, fontSize: 14 }}>{admin.name}</div>
-              <div style={{ fontSize: 12.5, color: "var(--muted-foreground)" }}>{admin.email} · {admin.role}</div>
+              <div style={{ fontSize: 12.5, color: "var(--muted-foreground)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{admin.email ?? "—"}{admin.role ? " · " + admin.role : ""}</div>
             </div>
             <Badge variant="success"><span style={{ width: 6, height: 6, borderRadius: 999, background: "var(--success-fg)" }} />ใช้งานอยู่</Badge>
           </div>
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-            <Button variant="outline" onClick={() => toast("ส่งลิงก์เปลี่ยนรหัสผ่านแล้ว", "mail")}><Icon name="key-round" size={15} />เปลี่ยนรหัสผ่าน</Button>
-            <Button variant="outline" onClick={() => toast("เปิดการตั้งค่าผู้ดูแล")}><Icon name="user-plus" size={15} />เพิ่มผู้ดูแล</Button>
+            <Button variant="outline" onClick={() => toast("จัดการสิทธิ์ผู้สร้างแบบสอบถามในระบบ SSO", "shield")}><Icon name="key-round" size={15} />จัดการสิทธิ์ใน SSO</Button>
           </div>
         </Card>
 

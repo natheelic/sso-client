@@ -1,4 +1,4 @@
-import { auth } from "@/lib/auth";
+import { auth, loginRedirectUrl } from "@/lib/auth";
 import { notFound, redirect } from "next/navigation";
 import { ACTIVITIES } from "@/lib/survey-data";
 import { SurveyFlow } from "@/components/survey/participant/survey-flow";
@@ -10,11 +10,10 @@ export default async function SurveyPage({
   params: Promise<{ id: string }>;
   searchParams: Promise<{ cert?: string }>;
 }) {
-  const session = await auth();
-  if (!session?.user) redirect("/login");
+  const [{ id }, { cert }, session] = await Promise.all([params, searchParams, auth()]);
 
-  const { id } = await params;
-  const { cert } = await searchParams;
+  if (!session?.user) redirect(loginRedirectUrl(`/activities/${id}/survey${cert ? `?cert=${cert}` : ""}`));
+
   const activity = ACTIVITIES.find((a) => a.id === id);
   if (!activity) notFound();
 

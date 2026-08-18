@@ -1,53 +1,28 @@
-"use client";
-
 /**
- * Admin layout — gates the console behind its own login (separate from SSO,
- * mock auth persisted in sessionStorage), then wraps every admin page in the
- * shared data provider + shell chrome.
+ * Admin (survey-creator) layout.
  *
- * proxy.ts treats /admin as public so the SSO guard doesn't intercept it.
+ * proxy.ts already enforces SSO login + app authorization for /admin at the
+ * middleware level; requireAdminSession() repeats that check here so this
+ * layout doesn't depend solely on the matcher being configured correctly.
  */
-import { useEffect, useState, type ReactNode } from "react";
+import type { ReactNode } from "react";
+import { requireAdminSession } from "@/lib/auth";
 import { AdminDataProvider } from "@/components/survey/admin/admin-data";
 import { AdminShell } from "@/components/survey/admin/admin-shell";
-import { AdminLogin } from "@/components/survey/admin/admin-login";
 
-const ADMIN_KEY = "licec-admin";
+export default async function AdminLayout({ children }: { children: ReactNode }) {
+  const session = await requireAdminSession();
 
-export default function AdminLayout({ children }: { children: ReactNode }) {
-  const [mounted, setMounted] = useState(false);
-  const [authed, setAuthed] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-    setAuthed(window.sessionStorage.getItem(ADMIN_KEY) === "1");
-  }, []);
-
-  if (!mounted) {
-    return <div style={{ minHeight: "100vh", background: "var(--background)" }} />;
-  }
-
-  if (!authed) {
-    return (
-      <AdminLogin
-        onLogin={() => {
-          window.sessionStorage.setItem(ADMIN_KEY, "1");
-          setAuthed(true);
-        }}
-      />
-    );
-  }
+  const u = session.user;
+  const adminUser = {
+    name: u.name ?? "ผู้ดูแลระบบ",
+    email: u.email ?? null,
+    role: u.role ?? "",
+  };
 
   return (
-    <AdminDataProvider>
-      <AdminShell
-        onLogout={() => {
-          window.sessionStorage.removeItem(ADMIN_KEY);
-          setAuthed(false);
-        }}
-      >
-        {children}
-      </AdminShell>
+    <AdminDataProvider adminUser={adminUser}>
+      <AdminShell>{children}</AdminShell>
     </AdminDataProvider>
   );
 }

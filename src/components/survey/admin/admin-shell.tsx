@@ -8,10 +8,12 @@
 import { useState, type ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ADMIN_USER } from "@/lib/survey-data";
+import { signOutAction } from "@/lib/actions";
 import { Emblem } from "@/components/survey/emblem";
 import { Icon } from "@/components/survey/icon";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { useAdminData } from "@/components/survey/admin/admin-data";
+import { getInitial } from "@/lib/format";
 
 const ADMIN_NAV: [string, string, string, string][] = [
   ["dashboard", "ภาพรวม", "layout-dashboard", "/admin"],
@@ -30,9 +32,10 @@ function sectionFor(pathname: string): string {
   return "dashboard";
 }
 
-export function AdminShell({ children, onLogout }: { children: ReactNode; onLogout: () => void }) {
+export function AdminShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const active = sectionFor(pathname);
+  const { adminUser } = useAdminData();
   const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
@@ -84,9 +87,11 @@ export function AdminShell({ children, onLogout }: { children: ReactNode; onLogo
           <Link href="/" style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 12px", borderRadius: 7, fontSize: 14, color: "var(--muted-foreground)", textDecoration: "none" }}>
             <Icon name="external-link" size={16} />ดูเว็บผู้ใช้
           </Link>
-          <button onClick={onLogout} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 12px", borderRadius: 7, fontSize: 14, color: "var(--muted-foreground)", background: "transparent", border: "none", cursor: "pointer", fontFamily: "inherit", width: "100%" }}>
-            <Icon name="log-out" size={16} />ออกจากระบบผู้ดูแล
-          </button>
+          <form action={signOutAction}>
+            <button type="submit" style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 12px", borderRadius: 7, fontSize: 14, color: "var(--muted-foreground)", background: "transparent", border: "none", cursor: "pointer", fontFamily: "inherit", width: "100%" }}>
+              <Icon name="log-out" size={16} />ออกจากระบบ (SSO)
+            </button>
+          </form>
         </div>
       </aside>
 
@@ -102,14 +107,14 @@ export function AdminShell({ children, onLogout }: { children: ReactNode; onLogo
         <div style={{ flex: 1 }} />
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <span className="hide-sm" style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, color: "var(--muted-foreground)", padding: "5px 10px", borderRadius: 999, background: "var(--secondary)" }}>
-            <Icon name="shield" size={13} />บัญชีผู้ดูแลแยกจาก SSO
+            <Icon name="shield" size={13} />เข้าสู่ระบบผ่าน SSO
           </span>
           <ThemeToggle />
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <div style={{ width: 30, height: 30, borderRadius: "50%", background: "var(--primary)", color: "var(--primary-foreground)", display: "grid", placeItems: "center", fontSize: 12.5, fontWeight: 600 }}>{ADMIN_USER.name[0]}</div>
+            <div style={{ width: 30, height: 30, borderRadius: "50%", background: "var(--primary)", color: "var(--primary-foreground)", display: "grid", placeItems: "center", fontSize: 12.5, fontWeight: 600 }}>{getInitial(adminUser.name, adminUser.email)}</div>
             <div style={{ lineHeight: 1.2 }} className="hide-sm">
-              <div style={{ fontWeight: 600, fontSize: 13.5 }}>{ADMIN_USER.name}</div>
-              <div style={{ fontSize: 11, color: "var(--muted-foreground)" }}>{ADMIN_USER.role}</div>
+              <div style={{ fontWeight: 600, fontSize: 13.5 }}>{adminUser.name}</div>
+              <div style={{ fontSize: 11, color: "var(--muted-foreground)" }}>{adminUser.role || "ผู้สร้างแบบสอบถาม"}</div>
             </div>
           </div>
         </div>

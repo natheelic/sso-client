@@ -9,7 +9,15 @@
 import { createContext, useContext, useMemo, useState, type ReactNode } from "react";
 import { ACTIVITIES, RESPONDENTS, type Activity, type TemplateId } from "@/lib/survey-data";
 
+/** The signed-in SSO survey creator (passed down from the server layout). */
+export interface AdminUser {
+  name: string;
+  email: string | null;
+  role: string;
+}
+
 interface AdminDataValue {
+  adminUser: AdminUser;
   activities: Activity[];
   counts: Record<string, number>;
   /** create a blank draft activity, returns its id */
@@ -24,7 +32,7 @@ function cloneActivity(a: Activity): Activity {
   return { ...a, questions: a.questions.map((q) => ({ ...q, options: q.options ? [...q.options] : undefined })) };
 }
 
-export function AdminDataProvider({ children }: { children: ReactNode }) {
+export function AdminDataProvider({ adminUser, children }: { adminUser: AdminUser; children: ReactNode }) {
   const [activities, setActivities] = useState<Activity[]>(() => ACTIVITIES.map(cloneActivity));
 
   const counts = useMemo(() => {
@@ -51,7 +59,7 @@ export function AdminDataProvider({ children }: { children: ReactNode }) {
     setActivities((l) => l.map((a) => (a.id === id ? { ...a, certTemplate: tmpl } : a)));
 
   return (
-    <AdminDataContext.Provider value={{ activities, counts, createActivity, saveActivity, assignTemplate }}>
+    <AdminDataContext.Provider value={{ adminUser, activities, counts, createActivity, saveActivity, assignTemplate }}>
       {children}
     </AdminDataContext.Provider>
   );

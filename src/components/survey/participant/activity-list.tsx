@@ -42,7 +42,7 @@ export function ActivityList({ user }: { user: ParticipantUser }) {
           <div style={{ fontSize: 13.5, color: "var(--muted-foreground)" }}>สวัสดี {firstName}</div>
           <h1 style={{ fontFamily: "var(--font-serif-th)", fontSize: "clamp(26px,4vw,34px)", fontWeight: 700, margin: "4px 0 8px" }}>กิจกรรมที่เปิดรับแบบสอบถาม</h1>
           <p style={{ fontSize: 15, color: "var(--muted-foreground)", margin: 0, maxWidth: 560 }}>
-            เลือกกิจกรรมที่ท่านเข้าร่วม ทำแบบสอบถามให้ครบถ้วน แล้วรับเกียรติบัตรอิเล็กทรอนิกส์ได้ทันที
+            เลือกกิจกรรมที่ท่านเข้าร่วม ทำแบบสอบถามให้ครบถ้วน แล้วรับเกียรติบัตรอิเล็กทรอนิกส์พร้อมชื่อของท่านได้ทันที
           </p>
         </div>
 

@@ -1,15 +1,17 @@
 "use client";
 
 /**
- * UserHeader — sticky top chrome for the participant surface.
- * Shows the real SSO user, a theme toggle, and a sign-out form wired to the
- * real NextAuth signOut server action.
+ * Participant header (authenticated). Taking a survey requires SSO login —
+ * because every survey issues a certificate tied to a verified identity — so
+ * this shows the signed-in user, a theme toggle, and a real sign-out. A shield
+ * link points staff to the creator console (proxy 403s unauthorized users).
  */
 import Link from "next/link";
 import { signOutAction } from "@/lib/actions";
 import { LogoLockup } from "@/components/survey/emblem";
 import { Icon } from "@/components/survey/icon";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { getInitial } from "@/lib/format";
 
 export interface ParticipantUser {
   name: string;
@@ -18,7 +20,7 @@ export interface ParticipantUser {
 }
 
 export function UserHeader({ user }: { user: ParticipantUser }) {
-  const initial = (user.name || user.email || "?").trim().charAt(0).toUpperCase() || "?";
+  const initial = getInitial(user.name, user.email);
   return (
     <header
       style={{
@@ -33,6 +35,19 @@ export function UserHeader({ user }: { user: ParticipantUser }) {
       </Link>
 
       <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+        <Link
+          href="/admin"
+          title="สร้างแบบสอบถาม (เจ้าหน้าที่)"
+          aria-label="สร้างแบบสอบถาม (เจ้าหน้าที่)"
+          style={{
+            display: "inline-flex", alignItems: "center", justifyContent: "center",
+            width: 36, height: 36, borderRadius: 8, border: "1px solid var(--border)",
+            background: "var(--card)", color: "var(--muted-foreground)", textDecoration: "none", flexShrink: 0,
+          }}
+        >
+          <Icon name="shield" size={16} />
+        </Link>
+
         <div style={{ textAlign: "right", lineHeight: 1.3 }} className="hide-sm">
           <div style={{ fontSize: 13.5, fontWeight: 600, color: "var(--foreground)" }}>{user.name || "ผู้เข้าร่วม"}</div>
           {user.email && <div style={{ fontSize: 11.5, color: "var(--muted-foreground)" }}>{user.email}</div>}
@@ -49,7 +64,7 @@ export function UserHeader({ user }: { user: ParticipantUser }) {
             style={{
               display: "inline-flex", alignItems: "center", justifyContent: "center",
               width: 36, height: 36, borderRadius: 8, border: "1px solid var(--border)",
-              background: "var(--card)", color: "var(--muted-foreground)", cursor: "pointer",
+              background: "var(--card)", color: "var(--muted-foreground)", cursor: "pointer", flexShrink: 0,
             }}
           >
             <Icon name="log-out" size={16} />

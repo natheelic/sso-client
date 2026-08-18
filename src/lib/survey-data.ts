@@ -212,6 +212,3 @@ export function makeCertNo(activity: Activity, recipientName: string): string {
 }
 
 export const VERIFY_HOST = "verify.licec.ac.th";
-
-/** Admin account — separate from SSO (mock). */
-export const ADMIN_USER = { name: "เจ้าหน้าที่งานทะเบียน", email: "admin@licec.ac.th", role: "ผู้ดูแลระบบ" };

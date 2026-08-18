@@ -14,6 +14,7 @@
  */
 import NextAuth from "next-auth";
 import type { NextAuthConfig } from "next-auth";
+import { redirect } from "next/navigation";
 
 const SSO_URL   = process.env.SSO_URL!;
 const CLIENT_ID = process.env.SSO_CLIENT_ID!;
@@ -128,3 +129,31 @@ export const authConfig: NextAuthConfig = {
 };
 
 export const { handlers, auth, signIn, signOut } = NextAuth(authConfig);
+
+/** Login URL that returns the user to `callbackPath` (including query params) after SSO. */
+export function loginRedirectUrl(callbackPath: string): string {
+  return `/login?callbackUrl=${encodeURIComponent(callbackPath)}`;
+}
+
+/**
+ * Require a signed-in session for a participant-facing page, redirecting to
+ * SSO login (preserving the full requested URL, including query params) if
+ * there isn't one.
+ */
+export async function requireSession(callbackPath: string) {
+  const session = await auth();
+  if (!session?.user) redirect(loginRedirectUrl(callbackPath));
+  return session;
+}
+
+/**
+ * Require a signed-in session that is also authorized for this app (its
+ * SSO_CLIENT_ID must appear in the token's apps[] claim) — the same check
+ * proxy.ts enforces at the middleware level, applied again here so the admin
+ * layout doesn't rely solely on the matcher being configured correctly.
+ */
+export async function requireAdminSession() {
+  const session = await requireSession("/admin");
+  if (!session.user.apps.includes(CLIENT_ID)) redirect("/403");
+  return session;
+}

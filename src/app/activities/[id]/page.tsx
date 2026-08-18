@@ -1,4 +1,4 @@
-import { auth } from "@/lib/auth";
+import { auth, loginRedirectUrl } from "@/lib/auth";
 import { notFound, redirect } from "next/navigation";
 import { ACTIVITIES } from "@/lib/survey-data";
 import { ActivityIntro } from "@/components/survey/participant/activity-intro";
@@ -10,11 +10,10 @@ export default async function ActivityIntroPage({
   params: Promise<{ id: string }>;
   searchParams: Promise<{ qr?: string }>;
 }) {
-  const session = await auth();
-  if (!session?.user) redirect("/login");
+  const [{ id }, { qr }, session] = await Promise.all([params, searchParams, auth()]);
 
-  const { id } = await params;
-  const { qr } = await searchParams;
+  if (!session?.user) redirect(loginRedirectUrl(`/activities/${id}${qr ? `?qr=${qr}` : ""}`));
+
   const activity = ACTIVITIES.find((a) => a.id === id);
   if (!activity) notFound();
 

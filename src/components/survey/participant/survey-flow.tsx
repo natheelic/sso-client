@@ -183,14 +183,14 @@ function ConfirmStep({ user, onFinish }: { user: ParticipantUser; onFinish: (nam
             </Select>
           </Field>
           <Field label="ชื่อ–สกุล">
-            <Input value={name} onChange={(e) => setName(e.target.value)} />
+            <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="กรอกชื่อ–สกุลของท่าน" autoFocus />
           </Field>
         </div>
         <div style={{ background: "var(--secondary)", borderRadius: 8, padding: "12px 14px", fontSize: 13, color: "var(--muted-foreground)", display: "flex", gap: 8 }}>
           <Icon name="info" size={15} style={{ flexShrink: 0, marginTop: 2 }} />
-          ชื่อที่จะปรากฏ: <strong style={{ color: "var(--foreground)" }}>{prefix}{name}</strong>
+          ชื่อที่จะปรากฏ: <strong style={{ color: "var(--foreground)" }}>{prefix}{name || "—"}</strong>
         </div>
-        <Button size="lg" onClick={() => onFinish((prefix + name).trim() || "ผู้เข้าร่วม")} style={{ width: "100%" }}>
+        <Button size="lg" onClick={() => onFinish((prefix + name).trim())} disabled={!name.trim()} style={{ width: "100%", ...(!name.trim() ? { opacity: 0.5, cursor: "not-allowed" } : {}) }}>
           <Icon name="award" size={17} />ออกเกียรติบัตร
         </Button>
       </Card>
