@@ -8,6 +8,7 @@
  * working unchanged.
  */
 import { db } from "@/lib/db";
+import { getDefaultCollegeId } from "@/lib/college-db";
 import type { Activity, Question, QuestionType, TemplateId } from "@/lib/survey-data";
 
 function toQuestion(q: { id: string; type: string; title: string; required: boolean; options: string[] }): Question {
@@ -45,10 +46,13 @@ export async function getActivity(id: string): Promise<Activity | null> {
 
 /** Creates a blank draft activity in the DB and returns it. */
 export async function createActivity(): Promise<Activity> {
+  // TEMPORARY: defaults to the one migrated college until Phase 5.4 adds
+  // real per-session "which college am I managing" context.
+  const collegeId = await getDefaultCollegeId();
   const id = "act-new-" + Date.now();
   const row = await db.activity.create({
     data: {
-      id,
+      id, collegeId,
       code: "LICEC-68-" + String(Date.now()).slice(-6),
       title: "", type: "โครงการอบรม", hours: 6, location: "", dateLabel: "",
       issueDate: "2568-06-01", status: "ร่าง", certTemplate: "classic", target: 50, description: "",

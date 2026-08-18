@@ -44,7 +44,7 @@ function isCertNoConflict(err: unknown): boolean {
  * value — see getCollegeSettings().
  */
 async function issueCertificate(
-  activity: { id: string; code: string; issueDate: string },
+  activity: { id: string; collegeId: string; code: string; issueDate: string },
   userId: string,
   recipientName: string,
 ): Promise<CertRecord> {
@@ -60,7 +60,7 @@ async function issueCertificate(
     try {
       const row = await db.certificateRecord.upsert({
         where: { activityId_userId: { activityId: activity.id, userId } },
-        create: { certNo, activityId: activity.id, userId, recipientName, issueDate: activity.issueDate, signatureVariant: college.signatureVariant },
+        create: { certNo, collegeId: activity.collegeId, activityId: activity.id, userId, recipientName, issueDate: activity.issueDate, signatureVariant: college.signatureVariant },
         update: { certNo, recipientName, issueDate: activity.issueDate, signatureVariant: college.signatureVariant, issuedAt: new Date() },
       });
       return { name: row.recipientName, certNo: row.certNo, issueISO: row.issueDate, activityId: row.activityId };
@@ -93,7 +93,7 @@ export async function submitSurvey(
   await db.submission.upsert({
     where: { activityId_userId: { activityId, userId } },
     create: {
-      activityId, userId, answers: answers as Prisma.InputJsonValue,
+      collegeId: activity.collegeId, activityId, userId, answers: answers as Prisma.InputJsonValue,
       userName: session.user.name ?? recipientName, userEmail: session.user.email ?? null,
     },
     update: {

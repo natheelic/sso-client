@@ -1,6 +1,6 @@
 /**
- * Seeds the four demo activities + questions (from src/lib/survey-data.ts)
- * and the college settings row, so the DB-backed app starts from the same
+ * Seeds one college (slug "licec") and its four demo activities + questions
+ * (from src/lib/survey-data.ts), so the DB-backed app starts from the same
  * content the mock-data prototype shipped with. Run via `npx prisma db seed`.
  */
 import { PrismaPg } from "@prisma/adapter-pg";
@@ -11,11 +11,28 @@ const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
 const db = new PrismaClient({ adapter });
 
 async function main() {
+  const college = await db.college.upsert({
+    where: { slug: "licec" },
+    create: {
+      id: "college-licec",
+      slug: "licec",
+      name: COLLEGE.name,
+      nameEn: COLLEGE.nameEn,
+      affiliation: COLLEGE.affiliation,
+      province: COLLEGE.province,
+      director: COLLEGE.director,
+      directorTitle: COLLEGE.directorTitle,
+      status: "active",
+    },
+    update: {},
+  });
+
   for (const activity of ACTIVITIES) {
     await db.activity.upsert({
       where: { id: activity.id },
       create: {
         id: activity.id,
+        collegeId: college.id,
         code: activity.code,
         title: activity.title,
         type: activity.type,
@@ -54,21 +71,7 @@ async function main() {
     });
   }
 
-  await db.collegeSettings.upsert({
-    where: { id: 1 },
-    create: {
-      id: 1,
-      name: COLLEGE.name,
-      nameEn: COLLEGE.nameEn,
-      affiliation: COLLEGE.affiliation,
-      province: COLLEGE.province,
-      director: COLLEGE.director,
-      directorTitle: COLLEGE.directorTitle,
-    },
-    update: {},
-  });
-
-  console.log(`Seeded ${ACTIVITIES.length} activities and college settings.`);
+  console.log(`Seeded 1 college and ${ACTIVITIES.length} activities.`);
 }
 
 main()

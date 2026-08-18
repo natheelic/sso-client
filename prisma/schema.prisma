@@ -1,8 +1,8 @@
-// Phase 0 of the development roadmap: a real data layer behind the survey +
-// certificate console. Field types deliberately mirror the TS shapes in
-// src/lib/survey-data.ts (e.g. `status`/`certTemplate`/`type` stay plain
-// strings, not Postgres enums) so the existing UI code's string comparisons
-// keep working unchanged.
+// Phase 0 laid down a real data layer; Phase 5 draws a tenant boundary
+// around it — every Activity/Submission/CertificateRecord now belongs to a
+// College, and CollegeSettings' old singleton row is retired in favor of a
+// real College row. Field types still deliberately mirror the TS shapes in
+// src/lib/survey-data.ts (status/certTemplate/type stay plain strings).
 
 generator client {
   provider = "prisma-client"
@@ -13,12 +13,63 @@ datasource db {
   provider = "postgresql"
 }
 
+/// A tenant. Each college has its own activities, certificates, branding,
+/// and admins. `status` gates visibility: only "active" colleges are
+/// browsable/joinable — "pending" ones are awaiting platform-owner approval
+/// (see roadmap Phase 5.2).
+model College {
+  id               String   @id @default(cuid())
+  slug             String   @unique
+  name             String
+  nameEn           String
+  affiliation      String
+  province         String
+  director         String
+  directorTitle    String
+  signatureImage   String?
+  logoImage        String?
+  signatureVariant Int      @default(0)
+  status           String   @default("pending")
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  activities   Activity[]
+  submissions  Submission[]
+  certificates CertificateRecord[]
+  memberships  Membership[]
+
+  @@map("colleges")
+}
+
+/// A user's staff/admin relationship to one college. Requesting access to an
+/// existing college creates a "pending" row; that college's approved admins
+/// decide it (see roadmap Phase 5.3). Not used for participant identity —
+/// taking a survey never requires membership in anything.
+model Membership {
+  id          String    @id @default(cuid())
+  collegeId   String
+  college     College   @relation(fields: [collegeId], references: [id], onDelete: Cascade)
+  userId      String
+  userName    String
+  userEmail   String?
+  role        String
+  status      String    @default("pending")
+  requestedAt DateTime  @default(now())
+  decidedAt   DateTime?
+  decidedBy   String?
+
+  @@unique([collegeId, userId])
+  @@map("memberships")
+}
+
 /// A course, workshop, or event participants can survey and receive a
 /// certificate for. Certificate template assignment is a single field here
 /// (not a separate join table) — an activity has exactly one active template,
 /// matching how templates.tsx already models it.
 model Activity {
   id           String   @id
+  collegeId    String
+  college      College  @relation(fields: [collegeId], references: [id], onDelete: Cascade)
   code         String   @unique
   title        String
   type         String
@@ -37,6 +88,7 @@ model Activity {
   submissions  Submission[]
   certificates CertificateRecord[]
 
+  @@index([collegeId])
   @@map("activities")
 }
 
@@ -58,8 +110,11 @@ model Question {
 
 /// One participant's answers to one activity's survey. One row per
 /// (activity, user) — retaking a survey replaces the previous answers.
+/// collegeId is denormalized from the parent activity for query convenience.
 model Submission {
   id          String   @id @default(cuid())
+  collegeId   String
+  college     College  @relation(fields: [collegeId], references: [id], onDelete: Cascade)
   activityId  String
   activity    Activity @relation(fields: [activityId], references: [id], onDelete: Cascade)
   userId      String
@@ -69,15 +124,19 @@ model Submission {
   submittedAt DateTime @default(now())
 
   @@unique([activityId, userId])
+  @@index([collegeId])
   @@map("submissions")
 }
 
 /// An issued certificate. One per (activity, user) — retaking a survey
 /// re-issues (new certNo) rather than accumulating duplicates, matching the
 /// prototype's old sessionStorage model where a new submission overwrote
-/// the previous record outright.
+/// the previous record outright. collegeId is denormalized from the parent
+/// activity for query convenience.
 model CertificateRecord {
   id               String   @id @default(cuid())
+  collegeId        String
+  college          College  @relation(fields: [collegeId], references: [id], onDelete: Cascade)
   certNo           String   @unique
   activityId       String
   activity         Activity @relation(fields: [activityId], references: [id], onDelete: Cascade)
@@ -88,27 +147,6 @@ model CertificateRecord {
   issuedAt         DateTime @default(now())
 
   @@unique([activityId, userId])
+  @@index([collegeId])
   @@map("certificate_records")
-}
-
-/// College info shown on certificates and the admin settings screen.
-/// Singleton row (fixed id 1). signatureImage/logoImage are data: URIs
-/// (small PNGs — a signature scribble, a college seal) stored inline rather
-/// than in object storage; null means "use the built-in placeholder art."
-/// signatureVariant picks between the two placeholder squiggles when no
-/// real signature has been uploaded yet.
-model CollegeSettings {
-  id               Int      @id @default(1)
-  name             String
-  nameEn           String
-  affiliation      String
-  province         String
-  director         String
-  directorTitle    String
-  signatureImage   String?
-  logoImage        String?
-  signatureVariant Int      @default(0)
-  updatedAt        DateTime @updatedAt
-
-  @@map("college_settings")
 }

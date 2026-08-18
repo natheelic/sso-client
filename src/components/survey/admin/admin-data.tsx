@@ -31,7 +31,7 @@ interface AdminDataValue {
   createActivity: () => Promise<string>;
   saveActivity: (form: Activity) => Promise<void>;
   assignTemplate: (id: string, tmpl: TemplateId) => Promise<void>;
-  saveCollegeInfo: (info: Omit<CollegeInfo, "signatureImage" | "logoImage" | "signatureVariant">) => Promise<void>;
+  saveCollegeInfo: (info: Omit<CollegeInfo, "id" | "slug" | "signatureImage" | "logoImage" | "signatureVariant">) => Promise<void>;
   saveSignature: (signatureImage: string | null, signatureVariant: number) => Promise<void>;
   saveLogo: (logoImage: string | null) => Promise<void>;
 }
