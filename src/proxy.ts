@@ -7,6 +7,8 @@
  *  - Taking a survey issues a certificate tied to a verified identity, so
  *    /activities/:id/survey requires SSO login — any authenticated user is
  *    enough, no app permission needed.
+ *  - Certificate verification (/verify/:certNo) is public — anyone holding
+ *    a certificate number should be able to check it, no login needed.
  *  - The survey-creator console at /admin additionally requires the user to
  *    be authorized for this app (its SSO_CLIENT_ID must appear in the
  *    token's apps[] claim).
@@ -27,6 +29,7 @@ function isPublicPath(pathname: string): boolean {
   if (pathname === "/403" || pathname.startsWith("/403/")) return true;
   // Activity intro pages (browsing), but not the survey itself.
   if (/^\/activities\/[^/]+$/.test(pathname)) return true;
+  if (pathname === "/verify" || pathname.startsWith("/verify/")) return true;
   return false;
 }
 

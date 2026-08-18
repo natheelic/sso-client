@@ -2,7 +2,7 @@
 
 /** AdminRespondents — searchable/filterable certificate holders + preview modal (ported from AdminRespondents.jsx). */
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
-import { COLLEGE, RESPONDENTS, thaiLongDate, type Activity, type Respondent } from "@/lib/survey-data";
+import { COLLEGE, RESPONDENTS, thaiLongDate, verifyUrlFor, type Activity, type Respondent } from "@/lib/survey-data";
 import { getSignatureVariant } from "@/lib/survey-progress";
 import { Badge, Button, Card, Empty, Input, Modal, PageHeader, Select } from "@/components/survey/ui";
 import { Icon } from "@/components/survey/icon";
@@ -141,7 +141,7 @@ function CertModalBody({ record, activity }: { record: Respondent; activity: Act
     activityType: activity.type, hours: activity.hours, dateLabel: activity.dateLabel,
     issueDateLong: thaiLongDate(record.dateISO), certNo: record.certNo, college: COLLEGE,
     signatureVariant: getSignatureVariant(), signatureName: COLLEGE.director, signatureTitle: COLLEGE.directorTitle,
-    verifyUrl: "verify.licec.ac.th/c/" + record.certNo.slice(-4),
+    verifyUrl: verifyUrlFor(record.certNo),
   };
   return (
     <div style={{ padding: 22 }}>

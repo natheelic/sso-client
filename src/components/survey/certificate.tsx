@@ -7,6 +7,7 @@
  * (ivory/navy/gold) regardless of the app's light/dark theme.
  */
 import type { ReactNode } from "react";
+import QRCode from "qrcode";
 import type { TemplateId, College } from "@/lib/survey-data";
 
 export interface CertData {
@@ -29,38 +30,13 @@ export interface CertData {
 // don't cause hydration mismatches if a certificate is ever server-rendered.
 const r3 = (n: number) => Math.round(n * 1000) / 1000;
 
-// ---------- deterministic faux-QR (looks like a real QR, encodes nothing) ----------
-function hashStr(s: string) {
-  let h = 2166136261;
-  for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); }
-  return h >>> 0;
-}
-
-export function FauxQR({ value, size = 96, fg = "#1a1a1a", bg = "#ffffff" }: { value: string; size?: number; fg?: string; bg?: string }) {
-  const N = 21, cell = size / N;
-  let seed = hashStr(value || "x");
-  const rnd = () => { seed = (seed * 1103515245 + 12345) & 0x7fffffff; return seed / 0x7fffffff; };
-  const isFinder = (r: number, c: number) => {
-    const inBox = (br: number, bc: number) => r >= br && r < br + 7 && c >= bc && c < bc + 7;
-    return inBox(0, 0) || inBox(0, N - 7) || inBox(N - 7, 0);
-  };
-  const finderFill = (r: number, c: number) => {
-    const box = (br: number, bc: number) => {
-      const rr = r - br, cc = c - bc;
-      if (rr < 0 || cc < 0 || rr > 6 || cc > 6) return null;
-      if (rr === 0 || rr === 6 || cc === 0 || cc === 6) return true;
-      if (rr >= 2 && rr <= 4 && cc >= 2 && cc <= 4) return true;
-      return false;
-    };
-    const a = box(0, 0); if (a !== null) return a;
-    const b = box(0, N - 7); if (b !== null) return b;
-    const d = box(N - 7, 0); if (d !== null) return d;
-    return false;
-  };
+// ---------- verification QR — encodes the real verify URL ----------
+export function CertQR({ value, size = 96, fg = "#1a1a1a", bg = "#ffffff" }: { value: string; size?: number; fg?: string; bg?: string }) {
+  const { modules } = QRCode.create(value, { errorCorrectionLevel: "M" });
+  const N = modules.size, cell = size / N;
   const cells: ReactNode[] = [];
   for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) {
-    const on = isFinder(r, c) ? finderFill(r, c) : rnd() > 0.55;
-    if (on) cells.push(<rect key={r + "-" + c} x={c * cell} y={r * cell} width={cell + 0.5} height={cell + 0.5} fill={fg} />);
+    if (modules.get(r, c)) cells.push(<rect key={r + "-" + c} x={c * cell} y={r * cell} width={cell + 0.5} height={cell + 0.5} fill={fg} />);
   }
   return (
     <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ display: "block" }}>
@@ -238,7 +214,8 @@ export function CertificateBoard({ data }: { data: CertData }) {
         <div style={{ position: "absolute", left: 80, right: 80, bottom: 52, display: "flex", alignItems: "flex-end", justifyContent: "space-between" }}>
           <div style={{ display: "flex", gap: 12, alignItems: "center", textAlign: "left" }}>
             <div style={{ border: `1px solid ${t.gold}`, padding: 4, background: "#fff", borderRadius: 4 }}>
-              <FauxQR value={certNo} size={74} fg={t.accent} />
+              {/* Encodes the same URL printed below — requires VERIFY_HOST to be routed to this app in production (see survey-data.ts). */}
+              <CertQR value={`https://${verifyUrl}`} size={74} fg={t.accent} />
             </div>
             <div style={{ fontSize: 11.5, lineHeight: 1.5, color: t.ink, opacity: 0.85 }}>
               <div style={{ fontWeight: 700 }}>เลขที่ {certNo}</div>

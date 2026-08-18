@@ -8,7 +8,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
-  COLLEGE, RATING_LABELS, VERIFY_HOST, thaiLongDate, type Activity, type Question,
+  COLLEGE, RATING_LABELS, thaiLongDate, verifyUrlFor, type Activity, type Question,
 } from "@/lib/survey-data";
 import { getSignatureVariant } from "@/lib/survey-progress";
 import { submitSurvey, type CertRecord } from "@/lib/submissions-db";
@@ -235,7 +235,7 @@ function buildCertData(record: CertRecord, activity: Activity): CertData {
     signatureVariant: record.signatureVariant,
     signatureName: COLLEGE.director,
     signatureTitle: COLLEGE.directorTitle,
-    verifyUrl: VERIFY_HOST + "/c/" + encodeURIComponent(record.certNo).slice(0, 14),
+    verifyUrl: verifyUrlFor(record.certNo),
   };
 }
 

@@ -200,17 +200,20 @@ function makeRespondents(): Respondent[] {
 
 export const RESPONDENTS: Respondent[] = makeRespondents();
 
-/** Deterministic certificate number for a freshly issued participant cert. */
-export function makeCertNo(activity: Activity, recipientName: string): string {
-  const yearShort = activity.issueDate.slice(2, 4);
-  let h = 2166136261;
-  const s = activity.id + recipientName;
-  for (let i = 0; i < s.length; i++) {
-    h ^= s.charCodeAt(i);
-    h = Math.imul(h, 16777619);
-  }
-  const serial = ((h >>> 0) % 9000) + 1000;
-  return `LICEC ${yearShort}-${activity.code.slice(-3)}/${pad(serial, 4)}`;
+/**
+ * Branded short domain printed on certificates. In production this must be
+ * routed (DNS + reverse proxy, or a redirect) to this app's own
+ * /verify/[certNo] page — verifyPath()/verifyUrlFor() below are what that
+ * route actually serves.
+ */
+export const VERIFY_HOST = "verify.licec.ac.th";
+
+/** In-app path for a certificate's public verification page. */
+export function verifyPath(certNo: string): string {
+  return `/verify/${encodeURIComponent(certNo)}`;
 }
 
-export const VERIFY_HOST = "verify.licec.ac.th";
+/** Full printed/QR verification URL for a certificate. */
+export function verifyUrlFor(certNo: string): string {
+  return VERIFY_HOST + verifyPath(certNo);
+}

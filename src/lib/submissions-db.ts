@@ -123,3 +123,44 @@ export async function getMyCompletedActivityIds(): Promise<Record<string, boolea
   rows.forEach((r) => { map[r.activityId] = true; });
   return map;
 }
+
+export interface PublicCertificate {
+  certNo: string;
+  recipientName: string;
+  issueDate: string;
+  signatureVariant: number;
+  activity: {
+    title: string;
+    type: string;
+    hours: number;
+    dateLabel: string;
+    certTemplate: string;
+  };
+}
+
+/**
+ * Public certificate lookup by number, for the /verify/[certNo] page —
+ * anyone with a certificate number (printed or from its QR code) can look
+ * it up, no login required. Deliberately excludes userId/email: this is
+ * meant to be shown to strangers verifying a credential.
+ */
+export async function getCertificateByCertNo(certNo: string): Promise<PublicCertificate | null> {
+  const row = await db.certificateRecord.findUnique({
+    where: { certNo },
+    include: { activity: true },
+  });
+  if (!row) return null;
+  return {
+    certNo: row.certNo,
+    recipientName: row.recipientName,
+    issueDate: row.issueDate,
+    signatureVariant: row.signatureVariant,
+    activity: {
+      title: row.activity.title,
+      type: row.activity.type,
+      hours: row.activity.hours,
+      dateLabel: row.activity.dateLabel,
+      certTemplate: row.activity.certTemplate,
+    },
+  };
+}
