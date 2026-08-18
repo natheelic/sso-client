@@ -5,12 +5,13 @@
  */
 import { auth } from "@/lib/auth";
 import { getActivities } from "@/lib/activities-db";
+import { getMyCompletedActivityIds } from "@/lib/submissions-db";
 import { ActivityList } from "@/components/survey/participant/activity-list";
 
 export default async function HomePage() {
-  const [session, activities] = await Promise.all([auth(), getActivities()]);
+  const [session, activities, completed] = await Promise.all([auth(), getActivities(), getMyCompletedActivityIds()]);
   const u = session?.user;
   const user = u ? { name: u.name ?? "", email: u.email ?? null, image: u.image ?? null } : null;
 
-  return <ActivityList user={user} activities={activities} />;
+  return <ActivityList user={user} activities={activities} completed={completed} />;
 }

@@ -56,9 +56,8 @@ model Question {
   @@map("questions")
 }
 
-/// One participant's answers to one activity's survey.
-/// Not written by the app yet — scaffolded now so roadmap Phase 1 (real
-/// submissions) has a table to land in.
+/// One participant's answers to one activity's survey. One row per
+/// (activity, user) — retaking a survey replaces the previous answers.
 model Submission {
   id          String   @id @default(cuid())
   activityId  String
@@ -73,9 +72,10 @@ model Submission {
   @@map("submissions")
 }
 
-/// An issued certificate.
-/// Not written by the app yet — scaffolded now so roadmap Phase 1 (issuance)
-/// and Phase 2 (the public /verify page) have a table to land in.
+/// An issued certificate. One per (activity, user) — retaking a survey
+/// re-issues (new certNo) rather than accumulating duplicates, matching the
+/// prototype's old sessionStorage model where a new submission overwrote
+/// the previous record outright.
 model CertificateRecord {
   id               String   @id @default(cuid())
   certNo           String   @unique
@@ -87,6 +87,7 @@ model CertificateRecord {
   signatureVariant Int      @default(0)
   issuedAt         DateTime @default(now())
 
+  @@unique([activityId, userId])
   @@map("certificate_records")
 }
 

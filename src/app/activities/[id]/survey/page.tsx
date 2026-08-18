@@ -1,6 +1,7 @@
 import { auth, loginRedirectUrl } from "@/lib/auth";
 import { notFound, redirect } from "next/navigation";
 import { getActivity } from "@/lib/activities-db";
+import { getMyCertificate } from "@/lib/submissions-db";
 import { SurveyFlow } from "@/components/survey/participant/survey-flow";
 
 export default async function SurveyPage({
@@ -18,11 +19,14 @@ export default async function SurveyPage({
   if (!activity) notFound();
 
   const u = session.user;
+  const initialRecord = cert === "1" ? await getMyCertificate(id) : null;
+
   return (
     <SurveyFlow
       activity={activity}
       user={{ name: u.name ?? "", email: u.email ?? null, image: u.image ?? null }}
       startAtCert={cert === "1"}
+      initialRecord={initialRecord}
     />
   );
 }

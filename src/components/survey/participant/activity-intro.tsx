@@ -2,21 +2,21 @@
 
 /**
  * ActivityIntro — activity overview + start CTA (ported from UserFlow.jsx
- * ActivityIntro). Routes into the survey, or back to the cert if already done.
+ * ActivityIntro). Routes into the survey, or back to the cert if already
+ * done — `done` is fetched server-side from the participant's real
+ * certificate record.
  */
-import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { Activity } from "@/lib/survey-data";
-import { getRecord } from "@/lib/survey-progress";
 import { Badge, Button, Card } from "@/components/survey/ui";
 import { Icon } from "@/components/survey/icon";
 import { UserHeader, type ParticipantUser } from "@/components/survey/participant/participant-header";
 
-export function ActivityIntro({ activity, user, fromQR }: { activity: Activity; user: ParticipantUser | null; fromQR?: boolean }) {
+export function ActivityIntro({
+  activity, user, fromQR, done,
+}: { activity: Activity; user: ParticipantUser | null; fromQR?: boolean; done: boolean }) {
   const router = useRouter();
-  const [done, setDone] = useState(false);
-  useEffect(() => { setDone(!!getRecord(activity.id)); }, [activity.id]);
 
   const facts: [string, string, string][] = [
     ["calendar", "วันที่จัด", activity.dateLabel],

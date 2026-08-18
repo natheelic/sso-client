@@ -8,9 +8,10 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
-  COLLEGE, RATING_LABELS, VERIFY_HOST, makeCertNo, thaiLongDate, type Activity, type Question,
+  COLLEGE, RATING_LABELS, VERIFY_HOST, thaiLongDate, type Activity, type Question,
 } from "@/lib/survey-data";
-import { getRecord, getSignatureVariant, saveRecord, type CertRecord } from "@/lib/survey-progress";
+import { getSignatureVariant } from "@/lib/survey-progress";
+import { submitSurvey, type CertRecord } from "@/lib/submissions-db";
 import { Badge, Button, Card, Field, Input, Progress, Select } from "@/components/survey/ui";
 import { Icon } from "@/components/survey/icon";
 import { CertificateFrame, type CertData } from "@/components/survey/certificate";
@@ -90,7 +91,7 @@ function ChoiceQ({ options, value, multi, onChange }: { options: string[]; value
 }
 
 // ---- survey runner (questions + confirm) ----
-function SurveyRunner({ activity, user, onExit, onFinish }: { activity: Activity; user: ParticipantUser; onExit: () => void; onFinish: (name: string) => void }) {
+function SurveyRunner({ activity, user, onExit, onFinish }: { activity: Activity; user: ParticipantUser; onExit: () => void; onFinish: (name: string, answers: AnswerMap) => void }) {
   const total = activity.questions.length;
   const [step, setStep] = useState(0);
   const [phase, setPhase] = useState<"q" | "confirm">("q");
@@ -141,7 +142,7 @@ function SurveyRunner({ activity, user, onExit, onFinish }: { activity: Activity
             {q.type === "checkbox" && q.options && <ChoiceQ options={q.options} value={ans as string[] | undefined} multi onChange={set} />}
           </div>
         ) : (
-          <ConfirmStep user={user} onFinish={onFinish} />
+          <ConfirmStep user={user} onFinish={(name) => onFinish(name, answers)} />
         )}
 
         {phase === "q" && q && (
@@ -198,11 +199,7 @@ function ConfirmStep({ user, onFinish }: { user: ParticipantUser; onFinish: (nam
   );
 }
 
-function Generating({ onDone }: { onDone: () => void }) {
-  useEffect(() => {
-    const t = setTimeout(onDone, 1900);
-    return () => clearTimeout(t);
-  }, [onDone]);
+function Generating() {
   return (
     <main style={{ minHeight: "100vh", display: "grid", placeItems: "center", padding: 20 }}>
       <div className="fade-in" style={{ textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", gap: 22 }}>
@@ -235,7 +232,7 @@ function buildCertData(record: CertRecord, activity: Activity): CertData {
     issueDateLong: thaiLongDate(record.issueISO),
     certNo: record.certNo,
     college: COLLEGE,
-    signatureVariant: getSignatureVariant(),
+    signatureVariant: record.signatureVariant,
     signatureName: COLLEGE.director,
     signatureTitle: COLLEGE.directorTitle,
     verifyUrl: VERIFY_HOST + "/c/" + encodeURIComponent(record.certNo).slice(0, 14),
@@ -282,29 +279,29 @@ function CertificateDelivery({ record, activity, user }: { record: CertRecord; a
   );
 }
 
-export function SurveyFlow({ activity, user, startAtCert }: { activity: Activity; user: ParticipantUser; startAtCert?: boolean }) {
+export function SurveyFlow({
+  activity, user, startAtCert, initialRecord,
+}: { activity: Activity; user: ParticipantUser; startAtCert?: boolean; initialRecord: CertRecord | null }) {
   const router = useRouter();
-  const [phase, setPhase] = useState<Phase>("survey");
-  const [record, setRecord] = useState<CertRecord | null>(null);
+  const toast = useToast();
+  const [phase, setPhase] = useState<Phase>(startAtCert && initialRecord ? "cert" : "survey");
+  const [record, setRecord] = useState<CertRecord | null>(initialRecord);
 
-  useEffect(() => {
-    if (startAtCert) {
-      const r = getRecord(activity.id);
-      if (r) { setRecord(r); setPhase("cert"); }
-    }
-  }, [startAtCert, activity.id]);
-
-  const finish = (name: string) => {
-    const rec: CertRecord = { name, certNo: makeCertNo(activity, name), issueISO: activity.issueDate, activityId: activity.id };
-    setRecord(rec);
+  const finish = async (name: string, answers: AnswerMap) => {
     setPhase("generating");
-  };
-  const onGenerated = () => {
-    if (record) saveRecord(record);
-    setPhase("cert");
+    try {
+      const rec = await submitSurvey(activity.id, name, answers, getSignatureVariant());
+      setRecord(rec);
+      setPhase("cert");
+    } catch {
+      toast("ออกเกียรติบัตรไม่สำเร็จ กรุณาลองใหม่อีกครั้ง");
+      // Answers are lost on failure — SurveyRunner remounts fresh. Acceptable
+      // for now since this should only happen on a genuine network/DB error.
+      setPhase("survey");
+    }
   };
 
-  if (phase === "generating") return <Generating onDone={onGenerated} />;
+  if (phase === "generating") return <Generating />;
   if (phase === "cert" && record) return <CertificateDelivery record={record} activity={activity} user={user} />;
   return <SurveyRunner activity={activity} user={user} onExit={() => router.push(`/activities/${activity.id}`)} onFinish={finish} />;
 }

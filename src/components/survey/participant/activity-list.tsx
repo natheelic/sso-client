@@ -2,13 +2,12 @@
 
 /**
  * ActivityList — participant home: open activities to survey (ported from
- * UserFlow.jsx ActivityList). Completion state comes from the client progress
- * store; clicking a card routes to the activity intro.
+ * UserFlow.jsx ActivityList). Completion state is fetched server-side from
+ * the participant's real certificate records; clicking a card routes to the
+ * activity intro.
  */
-import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { Activity } from "@/lib/survey-data";
-import { getRecords } from "@/lib/survey-progress";
 import { Badge, Card } from "@/components/survey/ui";
 import { Icon } from "@/components/survey/icon";
 import { UserHeader, type ParticipantUser } from "@/components/survey/participant/participant-header";
@@ -20,16 +19,10 @@ function iconForType(type: string) {
   return "sparkles";
 }
 
-export function ActivityList({ user, activities }: { user: ParticipantUser | null; activities: Activity[] }) {
+export function ActivityList({
+  user, activities, completed,
+}: { user: ParticipantUser | null; activities: Activity[]; completed: Record<string, boolean> }) {
   const router = useRouter();
-  const [completed, setCompleted] = useState<Record<string, boolean>>({});
-
-  useEffect(() => {
-    const recs = getRecords();
-    const map: Record<string, boolean> = {};
-    Object.keys(recs).forEach((id) => { map[id] = true; });
-    setCompleted(map);
-  }, []);
 
   const open = activities.filter((a) => a.status === "เปิดรับ");
   const firstName = user ? (user.name || user.email || "ผู้เข้าร่วม").split("@")[0].split(" ")[0] : null;
